@@ -1,0 +1,18 @@
+// Host -> board serial commands, one per line:
+//   <mood name>      show that mood (idle happy thinking sleepy alert error)
+//   next             cycle to the next mood (testing)
+//   usage <0-100>    5-hour usage for the ring; "usage none" hides it
+#pragma once
+
+#include "mood.h"
+
+enum CmdType : uint8_t { CMD_NONE, CMD_MOOD, CMD_NEXT, CMD_USAGE, CMD_UNKNOWN };
+
+struct Command {
+  CmdType type;
+  Mood mood;  // CMD_MOOD
+  int usage;  // CMD_USAGE: 0-100, or -1 to hide the ring
+};
+
+// Trims spaces and CR, ignores case. Out-of-range usage is clamped; anything malformed is CMD_UNKNOWN.
+Command parseLine(const char* line);
