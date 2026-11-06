@@ -32,6 +32,16 @@ You need a USB cable that carries data. Charge-only cables never show up as a po
 Controls without the helper: press BOOT to cycle faces, or type a face name in `pio device monitor`
 (`idle happy thinking sleepy alert error next`).
 
+Poke him: press anywhere on the screen with a firm fingertip or fingernail (the panel is resistive).
+
+| Mood when poked | Reaction |
+|---|---|
+| sleepy | Startled awake: eyes pop open, "!", a little jump, groggy blinks, a look around, then idle |
+| idle | A giggle (squeezed eyes, blush, wiggle) or a quick peek-a-boo off the right edge |
+| any other | A one-second giggle, then straight back. He never hides then, so the cue stays visible |
+
+Pokes during a reaction are ignored. The board prints `poke`, and the helper counts it as activity, so a woken face stays awake.
+
 If the display looks wrong, see the table at the bottom.
 
 ## 2. Mac helper
@@ -131,7 +141,8 @@ With several sessions open, priority is alert, error, thinking, happy, sleepy, i
 ## Pins (from the LCDWiki table)
 
 Display: MISO 12, MOSI 13, SCLK 14, CS 15, DC 2, backlight 21, reset shared with EN.
-Touch (XPT2046, unused so far): CS 33, IRQ 36, CLK 25, MOSI 32, MISO 39.
+Touch (XPT2046, on its own SPI bus, read directly with no library): CS 33, IRQ 36, CLK 25, MOSI 32, MISO 39.
+Pressure reads 3-15 untouched and 1,600-3,400 pressed; a poke is above 400.
 
 ## Next
 

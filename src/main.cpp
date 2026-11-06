@@ -7,11 +7,14 @@
 
 #include "backlight.h"
 #include "canvas.h"
+#include "clips.h"
 #include "face.h"
 #include "host.h"
 #include "palette.h"
+#include "poke.h"
 #include "protocol.h"
 #include "ring.h"
+#include "touch.h"
 
 const uint32_t FRAME_MS = 33;
 const char* const HELP = "commands: idle happy thinking sleepy alert error next | usage <0-100> | usage none";
@@ -23,6 +26,13 @@ uint32_t lastFrame = 0;
 
 // Sleepy dims the backlight: navy at full brightness glows and washes out the features.
 const uint8_t BACKLIGHT_FULL = 255, BACKLIGHT_SLEEPY = 70;
+
+// A clip (poke reaction or quirk) takes over the face for a few seconds. Any mood change cuts it off,
+// so a cue from the helper always shows straight away.
+ClipId clip = CLIP_NONE;
+uint32_t clipStart = 0;
+bool clipIsReaction = false;
+PokeDetector pokes;
 
 // The Mac helper resends its state every 30 seconds, so after 2 minutes of silence it is gone and we fall
 // back to idle. Pressing BOOT or "next" hands control back to the board until the helper speaks again.
@@ -42,7 +52,16 @@ void colorTest() {
   tft.setTextDatum(TL_DATUM);
 }
 
+void startClip(ClipId id, bool reaction) {
+  clip = id;
+  clipStart = millis();
+  clipIsReaction = reaction;
+}
+
+void endClip() { clip = CLIP_NONE; }
+
 void setMood(Mood m) {
+  endClip();
   mood = m;
   canvasSetMood(m);
   fullPush = true;
@@ -94,6 +113,33 @@ void handleSerial() {
   }
 }
 
+// A poke is any press. The helper hears "poke" and counts it as activity, so a woken face stays awake.
+void handleTouch(uint32_t now) {
+  static uint32_t lastPoll = 0;
+  if (now - lastPoll < 10) return;
+  lastPoll = now;
+  if (!pokes.update(touchPressed(), now)) return;
+  Serial.println("poke");
+  switch (chooseReaction(mood, clip != CLIP_NONE && clipIsReaction, esp_random())) {
+    case R_STARTLE:
+      clipSnorePopped(clip == CLIP_SNORE);
+      setMood(M_IDLE);  // wake now (backlight up); the helper confirms idle once it sees the poke
+      startClip(CLIP_STARTLE, true);
+      break;
+    case R_GIGGLE:
+      startClip(CLIP_GIGGLE, true);
+      break;
+    case R_HIDE:
+      startClip(CLIP_HIDE, true);
+      break;
+    case R_QUICK_GIGGLE:
+      startClip(CLIP_QUICK_GIGGLE, true);
+      break;
+    case R_NONE:
+      break;  // a reaction is already playing: extra pokes are ignored
+  }
+}
+
 void handleButton(uint32_t now) {
   static bool last = true;
   static uint32_t lastPress = 0;
@@ -127,7 +173,9 @@ void renderFrame(uint32_t now) {
   moodMotion(mood, now, pose);
   TFT_eSprite& s = canvas();
   s.fillSprite(P_BG);
-  drawFace(s, mood, pose, now);
+  bool clipDrawn = clip != CLIP_NONE && drawClip(s, clip, mood, now - clipStart, now, pose);
+  if (clip != CLIP_NONE && !clipDrawn) endClip();
+  if (!clipDrawn) drawFace(s, mood, pose, now);
   drawRing(s, usagePct);
   uint32_t t1 = micros();
   canvasPush(fullPush);
@@ -150,6 +198,7 @@ void setup() {
     while (true) delay(1000);
   }
   backlightBegin();
+  touchBegin();
 
 #ifdef COLOR_TEST
   Serial.println("Color test: expect red, green, blue, white");
@@ -164,6 +213,7 @@ void setup() {
 void loop() {
   uint32_t now = millis();
   handleButton(now);
+  handleTouch(now);
   handleSerial();
   if (host.expired(now)) {  // helper gone: idle, and hide the ring since its number is now stale
     usagePct = -1;
