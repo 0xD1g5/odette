@@ -2,6 +2,7 @@
 """Claude Code hook relay for Desk Buddy.
 
 Usage in a hook command:  python3 buddy_hook.py <EventName>
+From the status line:     python3 buddy_hook.py StatusLine   (forwards the 5-hour usage for the ring)
 
 Reads the hook's JSON from stdin, forwards a few fields to the daemon over a
 local Unix socket, and exits 0. It prints nothing and never blocks, so it
@@ -78,6 +79,21 @@ def parse(raw):
     return scan_head(raw)
 
 
+def _number(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return value
+
+
+def usage_fields(payload):
+    """(used_percentage, resets_at) of the status line's 5-hour window, or None for each part missing."""
+    limits = payload.get("rate_limits")
+    window = limits.get("five_hour") if isinstance(limits, dict) else None
+    if not isinstance(window, dict):
+        return None, None
+    return _number(window.get("used_percentage")), _number(window.get("resets_at"))
+
+
 def main():
     event = sys.argv[1] if len(sys.argv) > 1 else ""
     try:
@@ -91,6 +107,8 @@ def main():
         "t": str(payload.get("notification_type") or ""),
         "m": str(payload.get("message") or "")[:100],
     }
+    if event == "StatusLine":
+        msg["u"], msg["r"] = usage_fields(payload)
     try:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
         sock.settimeout(0.2)

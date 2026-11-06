@@ -8,6 +8,7 @@ Add --apply to write. A timestamped backup is made first.
     python3 install.py --apply          install the hooks
     python3 install.py --uninstall --apply     remove only Desk Buddy's hooks
     python3 install.py --launchagent --apply   also start the daemon at login (macOS)
+    python3 install.py --statusline --apply    also feed the 5-hour usage ring from your status line
 
 The hooks are observational: the relay script prints nothing and always exits 0.
 """
@@ -18,6 +19,8 @@ import difflib
 import json
 import os
 import plistlib
+import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -44,6 +47,9 @@ LOG_PATH = os.path.expanduser("~/.desk-buddy/daemon.log")
 BIN_DIR = os.path.expanduser("~/.desk-buddy/bin")
 LOCAL_HOOK = os.path.join(BIN_DIR, "buddy_hook.py")
 LOCAL_DAEMON = os.path.join(BIN_DIR, "buddy_daemon.py")
+STATUSLINE_MARK = "# desk-buddy"
+STATUSLINE_SHELLS = ("bash", "sh", "zsh", "/bin/bash", "/bin/sh", "/bin/zsh")
+STDIN_LINE = re.compile(r"^(\s*)(\w+)=\$\(cat\)\s*$")
 PYTHON_CANDIDATES = ["/opt/homebrew/bin/python3", "/usr/local/bin/python3", "/usr/bin/python3"]
 
 
@@ -112,6 +118,59 @@ def add_ours(settings, python=None, hook=None):
         hooks.setdefault(event, []).append(
             {"hooks": [{"type": "command", "command": command, "timeout": 5}]}
         )
+
+
+def statusline_command(var, python, hook):
+    """The line that hands the status line's JSON to the relay: in the background, silent, never blocking."""
+    return 'printf \'%%s\' "$%s" | "%s" "%s" StatusLine >/dev/null 2>&1 & %s' % (var, python, hook, STATUSLINE_MARK)
+
+
+def statusline_script(settings):
+    """Path of the script statusLine.command runs ("bash <path>", "sh <path>" or "<path>"), if it exists."""
+    status = settings.get("statusLine")
+    if not isinstance(status, dict) or not isinstance(status.get("command"), str):
+        return None
+    try:
+        argv = shlex.split(status["command"])
+    except ValueError:
+        return None
+    if len(argv) == 2 and argv[0] in STATUSLINE_SHELLS:
+        path = argv[1]
+    elif len(argv) == 1:
+        path = argv[0]
+    else:
+        return None
+    path = os.path.expanduser(path)
+    return path if os.path.isfile(path) else None
+
+
+def strip_statusline_line(text):
+    return "".join(line for line in text.splitlines(True) if not line.rstrip().endswith(STATUSLINE_MARK))
+
+
+def add_statusline_line(text, python, hook):
+    """Insert our line right after the first `<var>=$(cat)`. None if the script does not read stdin that way."""
+    lines = strip_statusline_line(text).splitlines(True)
+    for i, line in enumerate(lines):
+        match = STDIN_LINE.match(line)
+        if match:
+            indent, var = match.groups()
+            lines.insert(i + 1, indent + statusline_command(var, python, hook) + "\n")
+            return "".join(lines)
+    return None
+
+
+def statusline_change(settings, python, uninstall):
+    """(path, old text, new text) for the status line script, or (None, reason, None) if it is not supported."""
+    path = statusline_script(settings)
+    if path is None:
+        return None, "statusLine.command does not run a script file", None
+    with open(path, "r") as handle:
+        old = handle.read()
+    new = strip_statusline_line(old) if uninstall else add_statusline_line(old, python, LOCAL_HOOK)
+    if new is None:
+        return None, "%s has no `input=$(cat)` line" % path, None
+    return path, old, new
 
 
 def dump(settings):
@@ -213,12 +272,36 @@ def launchagent(apply):
     print("  launchctl bootout gui/$(id -u) %s" % PLIST_PATH)
 
 
+def statusline(settings, python, args):
+    """Show, and with --apply write, the status line script change. Uninstall only removes our own line."""
+    path, old, new = statusline_change(settings, python, args.uninstall)
+    if path is None:
+        if args.statusline and not args.uninstall:
+            print("\nStatus line: not changed (%s). To show usage on the board, add this line right after" % old)
+            print("the line where your status line script reads stdin into a variable (here called input):")
+            print("  " + statusline_command("input", python, LOCAL_HOOK))
+        return
+    if new == old:
+        if args.statusline:
+            print("\nStatus line: %s already up to date." % path)
+        return
+    print("\nStatus line script: %s" % path)
+    print("\n".join(difflib.unified_diff(old.splitlines(), new.splitlines(), "current", "proposed", lineterm="")))
+    if args.apply:
+        backup = write_settings(path, new)
+        print("Written. Backup: %s" % backup)
+    else:
+        print("(dry run, nothing written)")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Install Desk Buddy hooks into Claude Code")
     parser.add_argument("--settings", default=DEFAULT_SETTINGS, help="settings.json to edit")
     parser.add_argument("--apply", action="store_true", help="write the change (default is a dry run)")
     parser.add_argument("--uninstall", action="store_true", help="remove Desk Buddy's hooks")
     parser.add_argument("--launchagent", action="store_true", help="also write a macOS launch agent for the daemon")
+    parser.add_argument("--statusline", action="store_true",
+                        help="also add one line to your status line script so the board can show 5-hour usage")
     parser.add_argument("--hook-python", default=None,
                         help="interpreter for the hook command (default: a system python3, never one on an external drive)")
     args = parser.parse_args()
@@ -276,6 +359,9 @@ def main():
         print("  python3 %s --uninstall --apply" % os.path.abspath(__file__))
     elif not args.apply:
         print("\n(dry run, nothing written. Add --apply to write.)")
+
+    if args.statusline or args.uninstall:
+        statusline(before, python, args)
 
     if args.launchagent and args.uninstall and not args.apply:
         print("(dry run) would remove %s and %s" % (PLIST_PATH, LOCAL_DAEMON))

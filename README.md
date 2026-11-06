@@ -77,7 +77,20 @@ The installer copies `buddy_hook.py` to `~/.desk-buddy/bin/` and points the hook
 
 Optional, start the daemon at login: `.venv/bin/python helper/install.py --launchagent --apply`, then run the `launchctl bootstrap` line it prints. The installer refuses if that interpreter cannot import pyserial, since the daemon would then exit at every start and launchd would keep restarting it. It copies `buddy_daemon.py` to `~/.desk-buddy/bin/` like the hook, so re-run it after editing the daemon. The interpreter still runs from the venv, so if the project sits on an external drive the daemon cannot start at login while that drive is unmounted.
 
-Remove everything: `.venv/bin/python helper/install.py --uninstall --apply`, add `--launchagent` to also delete the launch agent plist.
+### Usage ring (optional)
+
+The small ring in the bottom-right corner shows how much of Claude's 5-hour usage limit is used, as a percentage. Claude Code only hands that number to the status line (claude.ai Pro, Max or Ultra plans, after the first response in a session), so the ring needs one line in your status line script:
+
+    .venv/bin/python helper/install.py --statusline            # preview
+    .venv/bin/python helper/install.py --statusline --apply    # write, with a timestamped backup
+
+It adds one line right after the line that reads stdin into a variable (`input=$(cat)`), marked `# desk-buddy`. The line runs the relay in the background with its output discarded, so the status line looks and runs exactly as before, even when the daemon is down. Other setups (no status line, an inline command, a script that reads stdin differently) are left alone, and the installer prints the line to add by hand.
+
+- The ring is hidden until a number arrives, and when the board stops hearing from the daemon.
+- The number is for the whole account, so the latest report from any session wins. It drops to 0 when the 5-hour window resets.
+- The status line only runs when Claude Code updates it (new messages, session start), so during quiet stretches the ring shows the last known value.
+
+Remove everything: `.venv/bin/python helper/install.py --uninstall --apply` (this also removes the status line line). Add `--launchagent` to also delete the launch agent plist.
 
 ### What drives each face
 
