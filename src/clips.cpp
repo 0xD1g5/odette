@@ -70,26 +70,26 @@ static bool hide(TFT_eSprite& s, Mood m, uint32_t t, uint32_t now, Pose p) {
 }
 
 // Woken from sleepy: eyes pop open with a "!", a little jump, groggy blinks, a look around. The caller has
-// already switched the board to idle, so this draws in idle's colours.
+// already switched the board to idle and swapped in the startle's pink palette for the clip's length.
 static bool startle(TFT_eSprite& s, uint32_t t, uint32_t now, Pose p) {
   if (t >= 2500) return false;
-  if (t < 450) {
-    p.dy = (int16_t)(-14 * sinf(PI_F * t / 450));
-    p.eyeOpen = 1.12f;
-    p.browLift = 10;
+  if (t < 800) {  // the jolt: a jump, and wide eyes held long enough to register
+    p.dy = t < 450 ? (int16_t)(-20 * sinf(PI_F * t / 450)) : 0;
+    p.eyeOpen = 1.2f;
+    p.browLift = 14;
     p.gazeX = p.gazeY = 0;
-  } else if (t < 1500) {
-    p.browLift = 10 * (1 - segment(t, 450, 900));
-    p.eyeOpen = dip(t, 700, 1000, 0.15f) * dip(t, 1150, 1450, 0.2f);
+  } else if (t < 1700) {
+    p.browLift = 14 * (1 - segment(t, 800, 1200));
+    p.eyeOpen = dip(t, 1000, 1300, 0.15f) * dip(t, 1400, 1700, 0.2f);
     p.gazeX = p.gazeY = 0;
   } else {
-    float u = (t - 1500) / 1000.0f;  // left, right, back to the middle
-    p.gazeX = u < 0.3f ? -segment(t, 1500, 1800) : (u < 0.7f ? -1 + 2 * segment(t, 1800, 2200) : 1 - segment(t, 2200, 2500));
+    float u = (t - 1700) / 800.0f;  // left, right, back to the middle
+    p.gazeX = u < 0.3f ? -segment(t, 1700, 1940) : (u < 0.7f ? -1 + 2 * segment(t, 1940, 2260) : 1 - segment(t, 2260, 2500));
   }
   drawFace(s, M_IDLE, p, now);
-  if (t < 1200) {  // the "!"
-    stroke(s, 286, 14, 286, 34, 7, P_INK);
-    s.fillCircle(286, 44, 4, P_INK);
+  if (t < 1500) {  // the "!"
+    stroke(s, 286, 10, 286, 38, 9, P_INK);
+    s.fillCircle(286, 50, 5, P_INK);
   }
   if (snorePopped && t < 250) {  // the snore bubble bursts
     for (int i = 0; i < 8; i++) {
@@ -193,11 +193,36 @@ static bool snack(TFT_eSprite& s, uint32_t t) {
   return true;
 }
 
-// A steaming mug rises from the bottom, he takes a sip and blushes, the mug goes away.
+// The mug, in its own frame: (lx, ly) from the body's centre, turned by the tilt, placed at (cx, cy).
+struct Mug {
+  float cx, cy, c, sn;
+  float x(float lx, float ly) const { return cx + lx * c - ly * sn; }
+  float y(float lx, float ly) const { return cy + lx * sn + ly * c; }
+  void rect(TFT_eSprite& s, float x0, float y0, float x1, float y1, uint8_t col) const {
+    float xs[4] = {x(x0, y0), x(x1, y0), x(x1, y1), x(x0, y1)};
+    float ys[4] = {y(x0, y0), y(x1, y0), y(x1, y1), y(x0, y1)};
+    fillConvex(s, xs, ys, 4, col);
+  }
+  void circle(TFT_eSprite& s, float lx, float ly, int r, uint8_t col) const {
+    s.fillCircle(lroundf(x(lx, ly)), lroundf(y(lx, ly)), r, col);
+  }
+  void ellipse(TFT_eSprite& s, float lx, float ly, float rx, float ry, uint8_t col) const {
+    float xs[16], ys[16];
+    for (int i = 0; i < 16; i++) {
+      float a = i * PI_F / 8;
+      xs[i] = x(lx + rx * cosf(a), ly + ry * sinf(a));
+      ys[i] = y(lx + rx * cosf(a), ly + ry * sinf(a));
+    }
+    fillConvex(s, xs, ys, 16, col);
+  }
+};
+
+// A steaming mug rises from the bottom, he tips it to his mouth and blushes, the mug goes away.
 static bool coffee(TFT_eSprite& s, uint32_t t) {
   if (t >= 7000) return false;
   static const Key RISE[] = {{0, 90}, {560, 90}, {1400, 0}, {5600, 0}, {6440, 90}, {7000, 90}};
   static const Key SIP[] = {{0, 0}, {2800, 0}, {3500, 1}, {4060, 1}, {4760, 0}, {7000, 0}};
+  const float W = 23, H = 26, R = 8;  // half the body's size, and its corner radius
   float sip = track(t, SIP);
   Xf f;
   f.dy = 4 * wave(t, 2600);
@@ -206,20 +231,30 @@ static bool coffee(TFT_eSprite& s, uint32_t t) {
   quad(s, f.X(76), f.Y(112), f.X(99), f.Y(128), f.X(122), f.Y(112), 10, P_INK);
   quad(s, f.X(198), f.Y(112), f.X(221), f.Y(128), f.X(244), f.Y(112), 10, P_INK);
   cheeks(s, f, 156, 18 + (int)(4 * sip), 10, P_CHEEK);  // "ahh": a deeper blush while sipping
-  quad(s, f.X(124), f.Y(176), f.X(138), f.Y(186), f.X(152), f.Y(176), 8, P_INK);
-  int mx = (int)(-30 * sip), my = (int)(track(t, RISE) - 14 * sip);
-  for (int k = 0; k < 2; k++) {  // steam
-    float u = cycle(t, 2000, k * 1000);
-    if (u < 0.12f || u > 0.9f) continue;
-    int x = 184 + 16 * k + mx, y = 150 + my - (int)(36 * u);
-    quad(s, x, y, x - 6, y - 8, x, y - 16, 4, P_WHITE);
-    quad(s, x, y - 16, x + 6, y - 24, x, y - 32, 4, P_WHITE);
+  if (sip < 0.5f) {
+    quad(s, f.X(124), f.Y(176), f.X(138), f.Y(186), f.X(152), f.Y(176), 8, P_INK);
+  } else {
+    s.fillEllipse(lroundf(f.X(140)), lroundf(f.Y(180)), 8, 7, P_INK);  // lips pursed on the rim
   }
-  s.fillCircle(224 + mx, 182 + my, 15, P_WHITE);  // handle first, so the body covers its inner edge
-  s.fillCircle(224 + mx, 182 + my, 9, P_BG);
-  s.fillRoundRect(170 + mx, 156 + my, 46, 52, 8, P_WHITE);
-  s.fillEllipse(193 + mx, 160 + my, 19, 5, P_COFFEE);
-  s.fillRect(170 + mx, 182 + my, 46, 8, P_CHEEK);
+  // Tipped 35 degrees towards him, the rim's near corner lands on the right of his mouth, (146, 181).
+  float a = -0.61f * sip;
+  Mug m = {193 - 13 * sip, 182 + 7 * sip + track(t, RISE) + f.dy * sip, cosf(a), sinf(a)};
+  if (sip < 0.1f) {
+    for (int k = 0; k < 2; k++) {  // steam, until he lifts it
+      float u = cycle(t, 2000, k * 1000);
+      if (u < 0.12f || u > 0.9f) continue;
+      int x = lroundf(m.x(-9 + 16 * k, -H)), y = lroundf(m.y(-9 + 16 * k, -H)) - 6 - (int)(36 * u);
+      quad(s, x, y, x - 6, y - 8, x, y - 16, 4, P_WHITE);
+      quad(s, x, y - 16, x + 6, y - 24, x, y - 32, 4, P_WHITE);
+    }
+  }
+  m.circle(s, W + 8, 0, 15, P_WHITE);  // handle first, so the body covers its inner edge
+  m.circle(s, W + 8, 0, 9, P_BG);
+  m.rect(s, -W + R, -H, W - R, H, P_WHITE);  // a rounded body: two crossed rectangles and four corners
+  m.rect(s, -W, -H + R, W, H - R, P_WHITE);
+  for (int i = 0; i < 4; i++) m.circle(s, i & 1 ? W - R : -W + R, i & 2 ? H - R : -H + R, R, P_WHITE);
+  m.ellipse(s, 0, -H + 4, 19, 5, P_COFFEE);
+  m.rect(s, -W, 0, W, 8, P_CHEEK);
   return true;
 }
 

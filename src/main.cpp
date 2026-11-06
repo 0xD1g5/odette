@@ -57,6 +57,10 @@ void colorTest() {
 
 void endClip() {
   if (clip != CLIP_NONE && !clipIsReaction) quirks.finished(millis());  // schedule the next quirk
+  if (clip == CLIP_STARTLE) {  // back from the startle's pink to the mood's colours
+    canvasSetMood(mood);
+    fullPush = true;
+  }
   clip = CLIP_NONE;
 }
 
@@ -135,7 +139,9 @@ void handleTouch(uint32_t now) {
     case R_STARTLE:
       clipSnorePopped(clip == CLIP_SNORE);
       setMood(M_IDLE);  // wake now (backlight up); the helper confirms idle once it sees the poke
+      backlightSnap(BACKLIGHT_FULL);  // full brightness at once, so the jolt is seen rather than faded into
       startClip(CLIP_STARTLE, true);
+      canvasSetPalette(startlePalette());  // setMood already asked for a full push
       break;
     case R_GIGGLE:
       startClip(CLIP_GIGGLE, true);

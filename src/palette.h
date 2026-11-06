@@ -34,3 +34,6 @@ enum PalIndex : uint8_t {
 
 // 16 RGB565 entries for this mood.
 const uint16_t* paletteFor(Mood m);
+
+// The startle's own colours, shown only while it plays.
+const uint16_t* startlePalette();

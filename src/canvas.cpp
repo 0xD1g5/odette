@@ -26,8 +26,9 @@ bool canvasBegin() {
 TFT_eSPI& display() { return tft; }
 TFT_eSprite& canvas() { return spr; }
 
-void canvasSetMood(Mood m) {
-  const uint16_t* p = paletteFor(m);
+void canvasSetMood(Mood m) { canvasSetPalette(paletteFor(m)); }
+
+void canvasSetPalette(const uint16_t* p) {
   for (uint8_t i = 0; i < PAL_COUNT; i++) spr.setPaletteColor(i, p[i]);
 }
 

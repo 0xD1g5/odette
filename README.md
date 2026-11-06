@@ -36,7 +36,7 @@ Poke him: press anywhere on the screen with a firm fingertip or fingernail (the 
 
 | Mood when poked | Reaction |
 |---|---|
-| sleepy | Startled awake: eyes pop open, "!", a little jump, groggy blinks, a look around, then idle |
+| sleepy | Startled awake: a bright pink flash, eyes pop open, "!", a little jump, groggy blinks, a look around, then idle |
 | idle | A giggle (squeezed eyes, blush, wiggle) or a quick peek-a-boo off the right edge |
 | any other | A one-second giggle, then straight back. He never hides then, so the cue stays visible |
 

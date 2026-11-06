@@ -21,3 +21,8 @@ void backlightUpdate() {
   level = fadeToward(level, target, STEP);
   ledcWrite(CHANNEL, level);
 }
+
+void backlightSnap(uint8_t l) {
+  level = target = l;
+  ledcWrite(CHANNEL, level);
+}
