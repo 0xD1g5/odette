@@ -17,11 +17,19 @@ enum PalIndex : uint8_t {
   P_TRACK,   // usage ring track: ink at 18% over the background
   P_BUBBLE,  // thinking bubble: white at 85% over the background
   P_DIM,     // resting thinking dots: ink at 30% over the bubble
-  P_PROP_A,  // quirk props (Task 9): cookie, mug, notes, steam
+  P_PROP_A,  // quirk props: each mood's palette fills these for the quirks it plays
   P_PROP_B,
   P_PROP_C,
   P_PROP_D,
-  PAL_COUNT = 16
+  PAL_COUNT = 16,
+
+  // Idle quirks (mug and steam use P_WHITE, the mug stripe P_CHEEK).
+  P_COOKIE = P_PROP_A,
+  P_CHIP = P_PROP_B,
+  P_COFFEE = P_PROP_C,
+  // Sleepy's snore bubble.
+  P_SNORE_FILL = P_PROP_A,
+  P_SNORE_EDGE = P_PROP_B,
 };
 
 // 16 RGB565 entries for this mood.

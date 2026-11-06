@@ -325,6 +325,19 @@ void test_diff_partial_last_band() {
   TEST_ASSERT_EQUAL(4, spans[0].h);
 }
 
+// ---- quirk test command ----
+
+void test_parse_quirk() {
+  Command c = parseLine("quirk sneeze");
+  TEST_ASSERT_EQUAL(CMD_QUIRK, c.type);
+  TEST_ASSERT_EQUAL(Q_SNEEZE, c.quirk);
+  TEST_ASSERT_EQUAL(Q_WHISTLE, parseLine("QUIRK  whistle\r").quirk);
+  TEST_ASSERT_EQUAL(Q_SNORE, parseLine("quirk snore").quirk);
+  TEST_ASSERT_EQUAL(Q_PEEK, parseLine("quirk peek").quirk);
+  TEST_ASSERT_EQUAL(CMD_UNKNOWN, parseLine("quirk sing").type);
+  TEST_ASSERT_EQUAL(CMD_UNKNOWN, parseLine("quirk").type);
+}
+
 // ---- backlight fade ----
 
 void test_fade_moves_towards_target_without_overshoot() {
@@ -338,6 +351,7 @@ void test_fade_moves_towards_target_without_overshoot() {
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_fade_moves_towards_target_without_overshoot);
+  RUN_TEST(test_parse_quirk);
   RUN_TEST(test_diff_identical_frames_push_nothing);
   RUN_TEST(test_diff_one_pixel);
   RUN_TEST(test_diff_span_covers_band_extent);

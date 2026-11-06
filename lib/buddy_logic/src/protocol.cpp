@@ -5,6 +5,14 @@
 
 static const int MAX_LINE = 40;
 
+static const struct {
+  const char* name;
+  Quirk quirk;
+} QUIRK_NAMES[] = {
+    {"whistle", Q_WHISTLE}, {"snack", Q_SNACK}, {"coffee", Q_COFFEE}, {"yawn", Q_YAWN},
+    {"sneeze", Q_SNEEZE},   {"peek", Q_PEEK},   {"snore", Q_SNORE},
+};
+
 // Parses an optional '-' and at least one digit, nothing else. Clamps to 0-100.
 static bool parsePercent(const char* s, int* out) {
   bool negative = false;
@@ -24,7 +32,7 @@ static bool parsePercent(const char* s, int* out) {
 }
 
 Command parseLine(const char* line) {
-  Command cmd = {CMD_UNKNOWN, M_IDLE, -1};
+  Command cmd = {CMD_UNKNOWN, M_IDLE, -1, Q_NONE};
   while (*line == ' ' || *line == '\r' || *line == '\t') line++;
   char buf[MAX_LINE];
   int len = 0;
@@ -47,6 +55,17 @@ Command parseLine(const char* line) {
   }
   if (strcmp(buf, "next") == 0) {
     cmd.type = CMD_NEXT;
+    return cmd;
+  }
+  if (strncmp(buf, "quirk ", 6) == 0) {
+    const char* arg = buf + 6;
+    while (*arg == ' ') arg++;
+    for (const auto& q : QUIRK_NAMES) {
+      if (strcmp(arg, q.name) == 0) {
+        cmd.type = CMD_QUIRK;
+        cmd.quirk = q.quirk;
+      }
+    }
     return cmd;
   }
   if (strncmp(buf, "usage ", 6) == 0) {

@@ -18,6 +18,9 @@ static const uint32_t CHEEK = 0xff7a59;
 static const uint32_t TONGUE = 0xff6b8a;
 static const uint32_t ALERT_MARK = 0xff6a00;
 static const uint32_t SLEEPY_Z = 0x4f9e86;
+// Quirk props, from idle-vignettes.html.
+static const uint32_t COOKIE = 0xd9a35b, CHIP = 0x5a3415, COFFEE = 0x6b3e1f;
+static const uint32_t SNORE_FILL = 0x9fc3ff, SNORE_EDGE = 0xb9d3ff;  // fill drawn at 35% like the mockup
 
 static uint16_t rgb565(uint32_t c) {
   return (uint16_t)(((c >> 8) & 0xF800) | ((c >> 5) & 0x07E0) | ((c >> 3) & 0x001F));
@@ -51,6 +54,14 @@ const uint16_t* paletteFor(Mood m) {
       p[P_TRACK] = rgb565(blend(ink, bg, 0.18f));
       p[P_BUBBLE] = rgb565(blend(WHITE, bg, 0.85f));
       p[P_DIM] = rgb565(blend(ink, blend(WHITE, bg, 0.85f), 0.3f));
+      if (i == M_SLEEPY) {
+        p[P_SNORE_FILL] = rgb565(blend(SNORE_FILL, bg, 0.35f));
+        p[P_SNORE_EDGE] = rgb565(SNORE_EDGE);
+      } else {
+        p[P_COOKIE] = rgb565(COOKIE);
+        p[P_CHIP] = rgb565(CHIP);
+        p[P_COFFEE] = rgb565(COFFEE);
+      }
     }
     built = true;
   }

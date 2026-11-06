@@ -30,7 +30,7 @@ If upload hangs on "Connecting...", hold BOOT, tap RESET, release BOOT once "Wri
 You need a USB cable that carries data. Charge-only cables never show up as a port.
 
 Controls without the helper: press BOOT to cycle faces, or type a face name in `pio device monitor`
-(`idle happy thinking sleepy alert error next`).
+(`idle happy thinking sleepy alert error next`, `usage 42`, `quirk sneeze`).
 
 Poke him: press anywhere on the screen with a firm fingertip or fingernail (the panel is resistive).
 
@@ -41,6 +41,16 @@ Poke him: press anywhere on the screen with a firm fingertip or fingernail (the 
 | any other | A one-second giggle, then straight back. He never hides then, so the cue stays visible |
 
 Pokes during a reaction are ignored. The board prints `poke`, and the helper counts it as activity, so a woken face stays awake.
+
+During quiet stretches he does little things on his own, only while idle:
+
+| Quirk | How often |
+|---|---|
+| whistling, coffee break, yawn & stretch | common |
+| snacking (a cookie, bite by bite) | occasional |
+| sneeze, peek-a-boo off the edge | rare |
+
+The first one waits 60-90 seconds after he goes idle, then 2-5 minutes between quirks, never the same one twice in a row. While sleepy he blows a snore bubble every 1-2 minutes. Any mood change ends a quirk at once, and a poke interrupts one. To see one now, send `quirk whistle` (or `snack coffee yawn sneeze peek snore`) in `pio device monitor`.
 
 If the display looks wrong, see the table at the bottom.
 
@@ -146,5 +156,4 @@ Pressure reads 3-15 untouched and 1,600-3,400 pressed; a poke is above 400.
 
 ## Next
 
-- Touch: tap to wake, pet it to get happy, long press to cycle faces.
-- Polish: eyebrows, eased blinks and glances, richer idle behavior, more expressions. Wireframes first.
+- Mood transitions (a quick squash or blink between moods) were left out of the redesign as optional polish.

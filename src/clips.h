@@ -5,6 +5,7 @@
 
 #include "face.h"
 #include "mood.h"
+#include "scheduler.h"
 
 enum ClipId : uint8_t {
   CLIP_NONE,
@@ -25,6 +26,9 @@ enum ClipId : uint8_t {
 // motion for this frame and `now` the clock, for parts that keep animating. Returns false once the clip has
 // finished; nothing is drawn then, so the caller draws the normal face.
 bool drawClip(TFT_eSprite& s, ClipId id, Mood m, uint32_t t, uint32_t now, Pose p);
+
+// The clip that plays a scheduled quirk.
+ClipId clipForQuirk(Quirk q);
 
 // Pops a snore bubble at the start of the startle (the poke woke him mid-snore).
 void clipSnorePopped(bool popped);

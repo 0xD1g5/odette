@@ -17,7 +17,9 @@
 #include "touch.h"
 
 const uint32_t FRAME_MS = 33;
-const char* const HELP = "commands: idle happy thinking sleepy alert error next | usage <0-100> | usage none";
+const char* const HELP =
+    "commands: idle happy thinking sleepy alert error next | usage <0-100> | usage none | quirk <whistle snack coffee "
+    "yawn sneeze peek snore>";
 
 Mood mood = M_IDLE;
 int usagePct = -1;     // 5-hour usage for the ring; -1 hides it
@@ -33,6 +35,7 @@ ClipId clip = CLIP_NONE;
 uint32_t clipStart = 0;
 bool clipIsReaction = false;
 PokeDetector pokes;
+QuirkScheduler quirks(1);  // reseeded in setup()
 
 // The Mac helper resends its state every 30 seconds, so after 2 minutes of silence it is gone and we fall
 // back to idle. Pressing BOOT or "next" hands control back to the board until the helper speaks again.
@@ -52,17 +55,22 @@ void colorTest() {
   tft.setTextDatum(TL_DATUM);
 }
 
+void endClip() {
+  if (clip != CLIP_NONE && !clipIsReaction) quirks.finished(millis());  // schedule the next quirk
+  clip = CLIP_NONE;
+}
+
 void startClip(ClipId id, bool reaction) {
+  endClip();  // a poke cutting off a quirk must still let the scheduler know it ended
   clip = id;
   clipStart = millis();
   clipIsReaction = reaction;
 }
 
-void endClip() { clip = CLIP_NONE; }
-
 void setMood(Mood m) {
   endClip();
   mood = m;
+  quirks.setMood(m, millis());
   canvasSetMood(m);
   fullPush = true;
   backlightTarget(m == M_SLEEPY ? BACKLIGHT_SLEEPY : BACKLIGHT_FULL);
@@ -81,6 +89,9 @@ void applyCommand(const char* line) {
     case CMD_NEXT:
       host = HostWatch(120000);
       setMood((Mood)((mood + 1) % MOOD_COUNT));
+      return;
+    case CMD_QUIRK:
+      startClip(clipForQuirk(cmd.quirk), false);
       return;
     case CMD_USAGE:
       host.heard(millis());
@@ -206,6 +217,7 @@ void setup() {
 #endif
 
   randomSeed(esp_random());
+  quirks = QuirkScheduler(esp_random());
   setMood(M_IDLE);
   Serial.println(HELP);
 }
@@ -219,6 +231,13 @@ void loop() {
     usagePct = -1;
     fullPush = true;
     if (mood != M_IDLE) setMood(M_IDLE);
+  }
+  if (clip == CLIP_NONE) {
+    Quirk q = quirks.update(now);
+    if (q != Q_NONE) {
+      Serial.printf("quirk %d\n", q);  // for checking timing; the helper ignores it
+      startClip(clipForQuirk(q), false);
+    }
   }
   if (now - lastFrame < FRAME_MS) return;
   lastFrame = now;
