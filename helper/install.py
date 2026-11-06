@@ -140,7 +140,7 @@ def statusline_script(settings):
         path = argv[0]
     else:
         return None
-    path = os.path.expanduser(path)
+    path = os.path.realpath(os.path.expanduser(path))  # a dotfiles symlink: edit its target, keep the link
     return path if os.path.isfile(path) else None
 
 

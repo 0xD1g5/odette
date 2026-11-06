@@ -94,7 +94,7 @@ class StatusLineEdit(unittest.TestCase):
         self.assertEqual(install.strip_statusline_line(install.add_statusline_line(SAMPLE, "p", "h")), SAMPLE)
 
     def test_statusline_script_forms(self):
-        home = tempfile.mkdtemp()
+        home = os.path.realpath(tempfile.mkdtemp())  # macOS temp dirs sit behind the /var symlink
         script = os.path.join(home, "x.sh")
         with open(script, "w") as handle:
             handle.write(SAMPLE)
@@ -171,6 +171,22 @@ class StatusLineCli(unittest.TestCase):
         self.assertEqual(len(self.backups()), 1)
         r = self.run_install("--uninstall", "--apply")
         self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.read_script(), SAMPLE)
+
+    def test_apply_keeps_symlinked_script_a_symlink(self):
+        dotfiles = os.path.join(self.home, "dotfiles")
+        os.mkdir(dotfiles)
+        real = os.path.join(dotfiles, "sl.sh")
+        os.replace(self.script, real)
+        os.symlink(real, self.script)
+        r = self.run_install("--statusline", "--apply")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertTrue(os.path.islink(self.script))
+        with open(real) as handle:
+            self.assertIn("# desk-buddy", handle.read())
+        r = self.run_install("--uninstall", "--apply")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertTrue(os.path.islink(self.script))
         self.assertEqual(self.read_script(), SAMPLE)
 
     def test_plain_install_leaves_script_alone(self):

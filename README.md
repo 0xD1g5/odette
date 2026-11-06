@@ -97,6 +97,15 @@ The installer copies `buddy_hook.py` to `~/.desk-buddy/bin/` and points the hook
 
 Optional, start the daemon at login: `.venv/bin/python helper/install.py --launchagent --apply`, then run the `launchctl bootstrap` line it prints. The installer refuses if that interpreter cannot import pyserial, since the daemon would then exit at every start and launchd would keep restarting it. It copies `buddy_daemon.py` to `~/.desk-buddy/bin/` like the hook, so re-run it after editing the daemon. The interpreter still runs from the venv, so if the project sits on an external drive the daemon cannot start at login while that drive is unmounted.
 
+### Upgrading
+
+The hooks and the launch agent run copies in `~/.desk-buddy/bin/`, not the files in this folder, so after pulling or editing the helper refresh them, and stop any daemon that is still running the old code:
+
+    .venv/bin/python helper/install.py --apply                  # refreshes the hook copy
+    .venv/bin/python helper/install.py --launchagent --apply    # if you use it, then run the bootout and bootstrap lines it prints
+
+Restart a daemon you started by hand. Flash new firmware together with the new helper: an old daemon ignores the board's `poke` lines, so a poke would wake the face only for it to fall asleep again at the next keepalive.
+
 ### Usage ring (optional)
 
 The small ring in the bottom-right corner shows how much of Claude's 5-hour usage limit is used, as a percentage. Claude Code only hands that number to the status line (claude.ai Pro, Max or Ultra plans, after the first response in a session), so the ring needs one line in your status line script:
