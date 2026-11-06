@@ -1,0 +1,113 @@
+# Desk Buddy
+
+A round-eye animated face for the 2.8" ESP32-32E display (240x320 panel, landscape).
+A Mac helper drives the face from Claude Code activity.
+
+Faces: idle, happy, thinking, sleepy, alert, error.
+
+## 1. Flash the firmware
+
+    brew install platformio        # or: pipx install platformio
+    ls /dev/cu.*                 # run unplugged and plugged in, the new entry is your port
+    pio run -t upload
+
+The default env is `st7789_noinvert`, which is the one that worked on this board.
+To replay the boot color test (red, green, blue, white), add `-DCOLOR_TEST` to the env's build_flags.
+If upload hangs on "Connecting...", hold BOOT, tap RESET, release BOOT once "Writing at" appears.
+You need a USB cable that carries data. Charge-only cables never show up as a port.
+
+Controls without the helper: press BOOT to cycle faces, or type a face name in `pio device monitor`
+(`idle happy thinking sleepy alert error next`).
+
+If the display looks wrong, see the table at the bottom.
+
+## 2. Mac helper
+
+The helper has three parts, all in `helper/`:
+
+| File | Job |
+|---|---|
+| `buddy_daemon.py` | Owns the USB port, merges events from all Claude Code sessions into one face |
+| `buddy_hook.py` | Tiny relay that Claude Code hooks call. Prints nothing, always exits 0 |
+| `install.py` | Adds or removes the hooks in `~/.claude/settings.json` (dry run by default) |
+
+### Setup
+
+1. Create a venv and install the one dependency:
+
+       python3 -m venv .venv
+       .venv/bin/pip install -r helper/requirements.txt
+
+   The commands below use `.venv/bin/python`. A plain `python3` usually lacks pyserial.
+2. Close `pio device monitor` if it is open. Only one program can hold the serial port.
+3. Test the logic without hooks or a board. In one terminal:
+
+       .venv/bin/python helper/buddy_daemon.py --no-serial --verbose
+
+   In a second terminal:
+
+       echo '{"session_id":"t"}' | python3 helper/buddy_hook.py UserPromptSubmit
+       echo '{"session_id":"t"}' | python3 helper/buddy_hook.py Stop
+
+   The first terminal should print `face: thinking`, then `face: happy`.
+4. Run the daemon against the board: `.venv/bin/python helper/buddy_daemon.py --verbose`
+   Opening the port can reset the board once, so you may see the color test replay. The daemon waits 3 seconds before sending a face.
+5. Preview the hook change, then apply it:
+
+       .venv/bin/python helper/install.py
+       .venv/bin/python helper/install.py --apply
+
+   The preview prints a diff and writes nothing. `--apply` makes a timestamped backup first.
+6. Start a new Claude Code session. The face should switch to thinking when you send a prompt.
+
+The installer copies `buddy_hook.py` to `~/.desk-buddy/bin/` and points the hooks at a system python3 plus that copy, with `|| true`, so Claude Code is never affected when an external drive is unmounted. Re-run `--apply` after editing `buddy_hook.py` to refresh the copy. Override the interpreter with `--hook-python`.
+
+Optional, start the daemon at login: `.venv/bin/python helper/install.py --launchagent --apply`, then run the `launchctl bootstrap` line it prints. The installer refuses if that interpreter cannot import pyserial, since the daemon would then exit at every start and launchd would keep restarting it. It copies `buddy_daemon.py` to `~/.desk-buddy/bin/` like the hook, so re-run it after editing the daemon. The interpreter still runs from the venv, so if the project sits on an external drive the daemon cannot start at login while that drive is unmounted.
+
+Remove everything: `.venv/bin/python helper/install.py --uninstall --apply`, add `--launchagent` to also delete the launch agent plist.
+
+### What drives each face
+
+| Face | Trigger |
+|---|---|
+| thinking | A prompt is submitted, or Claude is running tools |
+| alert | Claude asks for permission or input (Notification hook). Stays until that session's next event |
+| happy | A turn finishes and no other session is still working. Holds 4 seconds |
+| error | A turn ends on an API failure (StopFailure hook). Holds 8 seconds |
+| sleepy | No events for 10 minutes |
+| idle | Everything else |
+
+With several sessions open, priority is alert, error, thinking, happy, sleepy, idle.
+
+### Known limits
+
+- The hook payload field names (`session_id`, `notification_type`) were not confirmed against the docs. The relay falls back safely, but check the daemon log with `--verbose` on the first real run.
+- Interrupting a turn with Esc may not fire a Stop event. A working session drops back to idle after 180 seconds (`--work-timeout`), or 600 seconds while a tool call is still open (`--tool-timeout`).
+- After you approve a permission prompt, the alert face stays until the next hook event (usually when the tool finishes). No hook event for approval is known.
+- The firmware falls back to idle if it hears nothing from the helper for 2 minutes, so a sleeping Mac does not leave it stuck on thinking.
+- This covers Claude Code sessions with hooks. It does not see Claude Desktop chats.
+- The idle-prompt notification ("Claude is waiting for your input") is ignored on purpose, so the face does not nag after every finished turn.
+
+### Tests
+
+    cd helper && python3 -m unittest discover -s tests -v
+
+## 3. If the display looks wrong
+
+| Symptom | Try |
+|---|---|
+| Backlight on but screen white or blank | `pio run -e ili9341 -t upload` |
+| White looks black, colors look inverted | `-e st7789_invert`, then `-e st7789_noinvert` |
+| Red and blue swapped in the color test | Add `-DTFT_RGB_ORDER=TFT_BGR` to the env's build_flags |
+| Face upside down | Add `-DROTATION=3` to build_flags |
+| Garbled or shifting image | Lower `-DSPI_FREQUENCY=40000000` to `27000000` |
+
+## Pins (from the LCDWiki table)
+
+Display: MISO 12, MOSI 13, SCLK 14, CS 15, DC 2, backlight 21, reset shared with EN.
+Touch (XPT2046, unused so far): CS 33, IRQ 36, CLK 25, MOSI 32, MISO 39.
+
+## Next
+
+- Touch: tap to wake, pet it to get happy, long press to cycle faces.
+- Polish: eyebrows, eased blinks and glances, richer idle behavior, more expressions. Wireframes first.
