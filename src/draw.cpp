@@ -25,6 +25,50 @@ void quad(TFT_eSprite& s, float x0, float y0, float cx, float cy, float x1, floa
   }
 }
 
+void fillConvex(TFT_eSprite& s, const float* xs, const float* ys, int n, uint8_t col) {
+  float cx = 0, cy = 0;
+  for (int i = 0; i < n; i++) {
+    cx += xs[i];
+    cy += ys[i];
+  }
+  cx /= n;
+  cy /= n;
+  for (int i = 0; i < n; i++) {
+    int j = (i + 1) % n;
+    s.fillTriangle(lroundf(cx), lroundf(cy), lroundf(xs[i]), lroundf(ys[i]), lroundf(xs[j]), lroundf(ys[j]), col);
+  }
+}
+
+void Path::add(float x, float y) {
+  lastX_ = x;
+  lastY_ = y;
+  if (n_ < MAX_POINTS) {
+    xs_[n_] = f_.X(x);
+    ys_[n_] = f_.Y(y);
+    n_++;
+  }
+}
+
+Path& Path::move(float x, float y) {
+  n_ = 0;
+  add(x, y);
+  return *this;
+}
+
+Path& Path::line(float x, float y) {
+  add(x, y);
+  return *this;
+}
+
+Path& Path::quad(float cx, float cy, float x, float y) {
+  float x0 = lastX_, y0 = lastY_;
+  for (int i = 1; i <= QUAD_SEGMENTS; i++) {
+    float t = (float)i / QUAD_SEGMENTS, u = 1 - t;
+    add(u * u * x0 + 2 * u * t * cx + t * t * x, u * u * y0 + 2 * u * t * cy + t * t * y);
+  }
+  return *this;
+}
+
 void bar(TFT_eSprite& s, const Xf& f, float x, float y, float w, float h, float deg, uint8_t col) {
   float cx = x + w / 2, cy = y + h / 2, half = (w - h) / 2;
   float a = deg * (float)M_PI / 180.0f;

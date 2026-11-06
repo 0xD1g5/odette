@@ -1,9 +1,22 @@
 # Desk Buddy
 
-A round-eye animated face for the 2.8" ESP32-32E display (240x320 panel, landscape).
+A quirky, cheerful animated face for the 2.8" ESP32-32E display (240x320 panel, landscape).
 A Mac helper drives the face from Claude Code activity.
 
-Faces: idle, happy, thinking, sleepy, alert, error.
+Each mood fills the screen with its own colour, so you can read it at a glance from across the desk:
+
+| Mood (serial name) | Look |
+|---|---|
+| idle | Mint. Blinks, glances around, gentle bob |
+| thinking | Lavender. Looks up and to the right, one brow raised, "..." bubble top right |
+| happy | Yellow. `^ ^` eyes, big smile, bounces |
+| needs you (`alert`) | Orange. Wide eyes, jitters, white "!" bubble top right |
+| playful sad (`error`) | Blue. Worried brows, puppy eyes, wobbly pout, a falling tear |
+| sleepy | Navy, dimmed. Closed eyes, slow breathing, drifting Z z |
+
+The design and mockups are in `docs/superpowers/specs/2026-11-05-desk-buddy-character-design.md`.
+
+Firmware logic tests run on the Mac: `pio test -e native`.
 
 ## 1. Flash the firmware
 

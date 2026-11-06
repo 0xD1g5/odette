@@ -50,6 +50,7 @@ const uint16_t* paletteFor(Mood m) {
       p[P_ACCENT] = rgb565(i == M_SLEEPY ? SLEEPY_Z : ALERT_MARK);
       p[P_TRACK] = rgb565(blend(ink, bg, 0.18f));
       p[P_BUBBLE] = rgb565(blend(WHITE, bg, 0.85f));
+      p[P_DIM] = rgb565(blend(ink, blend(WHITE, bg, 0.85f), 0.3f));
     }
     built = true;
   }

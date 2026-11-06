@@ -7,6 +7,7 @@
 
 #include "canvas.h"
 #include "face.h"
+#include "host.h"
 #include "palette.h"
 #include "protocol.h"
 
@@ -17,11 +18,9 @@ Mood mood = M_IDLE;
 bool fullPush = true;  // next frame must push the whole screen (mood colour changed)
 uint32_t lastFrame = 0;
 
-// A mood set over serial counts as host driven. The Mac helper resends its state every 30 seconds,
-// so if nothing arrives for HOST_TIMEOUT_MS the helper is gone and we fall back to idle.
-bool hostDriven = false;
-uint32_t lastHostMs = 0;
-const uint32_t HOST_TIMEOUT_MS = 120000;
+// The Mac helper resends its state every 30 seconds, so after 2 minutes of silence it is gone and we fall
+// back to idle. Pressing BOOT or "next" hands control back to the board until the helper speaks again.
+HostWatch host(120000);
 
 void colorTest() {
   TFT_eSPI& tft = display();
@@ -50,16 +49,15 @@ void applyCommand(const char* line) {
     case CMD_NONE:
       return;
     case CMD_MOOD:
-      hostDriven = true;
-      lastHostMs = millis();
+      host.heard(millis());
       if (mood != cmd.mood) setMood(cmd.mood);
       return;
     case CMD_NEXT:
-      hostDriven = false;
+      host = HostWatch(120000);
       setMood((Mood)((mood + 1) % MOOD_COUNT));
       return;
     case CMD_USAGE:
-      lastHostMs = millis();
+      host.heard(millis());
       return;
     default:
       Serial.println(HELP);
@@ -91,7 +89,7 @@ void handleButton(uint32_t now) {
   bool cur = digitalRead(0);
   if (last && !cur && now - lastPress > 250) {
     lastPress = now;
-    hostDriven = false;
+    host = HostWatch(120000);
     setMood((Mood)((mood + 1) % MOOD_COUNT));
   }
   last = cur;
@@ -149,10 +147,7 @@ void loop() {
   uint32_t now = millis();
   handleButton(now);
   handleSerial();
-  if (hostDriven && mood != M_IDLE && now - lastHostMs > HOST_TIMEOUT_MS) {
-    hostDriven = false;
-    setMood(M_IDLE);
-  }
+  if (host.expired(now) && mood != M_IDLE) setMood(M_IDLE);
   if (now - lastFrame < FRAME_MS) return;
   lastFrame = now;
   renderFrame(now);

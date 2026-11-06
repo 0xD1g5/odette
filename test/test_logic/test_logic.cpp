@@ -2,6 +2,7 @@
 
 #include <unity.h>
 
+#include "host.h"
 #include "mood.h"
 #include "poke.h"
 #include "protocol.h"
@@ -227,8 +228,36 @@ void test_reactions() {
   }
 }
 
+// ---- host watchdog ----
+
+void test_host_heard_after_frame_start_is_not_expired() {
+  // loop() reads now, then a serial command arrives a millisecond later: must not count as 49 days of silence.
+  HostWatch w(120000);
+  w.heard(5001);
+  TEST_ASSERT_FALSE(w.expired(5000));
+}
+
+void test_host_expires_after_timeout() {
+  HostWatch w(120000);
+  TEST_ASSERT_FALSE(w.expired(1000));  // never heard: nothing to expire
+  w.heard(1000);
+  TEST_ASSERT_FALSE(w.expired(1000 + 120000));
+  TEST_ASSERT_TRUE(w.expired(1000 + 120001));
+}
+
+void test_host_expires_once_and_wraps() {
+  HostWatch w(120000);
+  w.heard(0xFFFFF000u);
+  TEST_ASSERT_FALSE(w.expired(0xFFFFF000u + 60000));  // across the millis() wrap
+  TEST_ASSERT_TRUE(w.expired(0xFFFFF000u + 120001));
+  TEST_ASSERT_FALSE(w.expired(0xFFFFF000u + 130000));  // reported once, until heard again
+}
+
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_host_heard_after_frame_start_is_not_expired);
+  RUN_TEST(test_host_expires_after_timeout);
+  RUN_TEST(test_host_expires_once_and_wraps);
   RUN_TEST(test_parse_moods);
   RUN_TEST(test_parse_next_and_empty);
   RUN_TEST(test_parse_usage);

@@ -16,6 +16,7 @@ enum PalIndex : uint8_t {
   P_ACCENT,  // alert "!", sleepy Z
   P_TRACK,   // usage ring track: ink at 18% over the background
   P_BUBBLE,  // thinking bubble: white at 85% over the background
+  P_DIM,     // resting thinking dots: ink at 30% over the bubble
   P_PROP_A,  // quirk props (Task 9): cookie, mug, notes, steam
   P_PROP_B,
   P_PROP_C,

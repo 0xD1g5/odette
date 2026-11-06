@@ -29,5 +29,27 @@ void quad(TFT_eSprite& s, float x0, float y0, float cx, float cy, float x1, floa
 // SVG <rect x y w h rx=h/2> rotated by `deg` about its centre: a brow bar.
 void bar(TFT_eSprite& s, const Xf& f, float x, float y, float w, float h, float deg, uint8_t col);
 
+// Filled convex polygon (screen coordinates), as a triangle fan from its centroid.
+void fillConvex(TFT_eSprite& s, const float* xs, const float* ys, int n, uint8_t col);
+
+// A closed SVG path of M, L and Q commands in mockup coordinates, filled. The shape must be convex.
+//   Path(f).move(122, 148).line(198, 148).quad(194, 204, 160, 204).quad(126, 204, 122, 148).fill(s, P_INK);
+class Path {
+ public:
+  explicit Path(const Xf& f) : f_(f) {}
+  Path& move(float x, float y);
+  Path& line(float x, float y);
+  Path& quad(float cx, float cy, float x, float y);
+  void fill(TFT_eSprite& s, uint8_t col) const { fillConvex(s, xs_, ys_, n_, col); }
+
+ private:
+  static const int MAX_POINTS = 64, QUAD_SEGMENTS = 10;
+  void add(float x, float y);
+  Xf f_;
+  float xs_[MAX_POINTS], ys_[MAX_POINTS];
+  float lastX_ = 0, lastY_ = 0;  // current point, mockup coordinates
+  int n_ = 0;
+};
+
 // Upright pill (radius = half the narrower side), scaled vertically by `open` about its centre: an eye.
 void pill(TFT_eSprite& s, const Xf& f, float x, float y, float w, float h, float open, uint8_t col);
