@@ -10,12 +10,14 @@
 #include "host.h"
 #include "palette.h"
 #include "protocol.h"
+#include "ring.h"
 
 const uint32_t FRAME_MS = 33;
 const char* const HELP = "commands: idle happy thinking sleepy alert error next | usage <0-100> | usage none";
 
 Mood mood = M_IDLE;
-bool fullPush = true;  // next frame must push the whole screen (mood colour changed)
+int usagePct = -1;     // 5-hour usage for the ring; -1 hides it
+bool fullPush = true;  // next frame must push the whole screen (mood colour or ring changed)
 uint32_t lastFrame = 0;
 
 // The Mac helper resends its state every 30 seconds, so after 2 minutes of silence it is gone and we fall
@@ -58,6 +60,10 @@ void applyCommand(const char* line) {
       return;
     case CMD_USAGE:
       host.heard(millis());
+      if (usagePct != cmd.usage) {
+        usagePct = cmd.usage;
+        fullPush = true;
+      }
       return;
     default:
       Serial.println(HELP);
@@ -96,26 +102,32 @@ void handleButton(uint32_t now) {
 }
 
 // For the first 30 s after boot, report how long frames take, to check the ~30 fps budget.
-void reportFrameTime(uint32_t now, uint32_t workMs) {
-  static uint32_t total = 0, frames = 0, lastReport = 0;
+void reportFrameTime(uint32_t now, uint32_t drawUs, uint32_t pushUs) {
+  static uint32_t draw = 0, push = 0, frames = 0, lastReport = 0;
   if (now > 30000) return;
-  total += workMs;
+  draw += drawUs;
+  push += pushUs;
   frames++;
   if (now - lastReport >= 5000) {
-    Serial.printf("frame %.1f ms avg over %u frames\n", (float)total / frames, frames);
-    total = frames = 0;
+    Serial.printf("frame %.1f ms avg (draw %.1f, push %.1f) over %u frames\n", (draw + push) / 1000.0f / frames,
+                  draw / 1000.0f / frames, push / 1000.0f / frames, frames);
+    draw = push = frames = 0;
     lastReport = now;
   }
 }
 
 void renderFrame(uint32_t now) {
+  uint32_t t0 = micros();
   Pose pose;
   moodMotion(mood, now, pose);
   TFT_eSprite& s = canvas();
   s.fillSprite(P_BG);
   drawFace(s, mood, pose, now);
-  canvasPush(fullPush ? FULL_RECT : faceBounds(mood, pose));
+  drawRing(s, usagePct);
+  uint32_t t1 = micros();
+  canvasPush(fullPush);
   fullPush = false;
+  reportFrameTime(now, t1 - t0, micros() - t1);
 }
 
 void setup() {
@@ -147,9 +159,12 @@ void loop() {
   uint32_t now = millis();
   handleButton(now);
   handleSerial();
-  if (host.expired(now) && mood != M_IDLE) setMood(M_IDLE);
+  if (host.expired(now)) {  // helper gone: idle, and hide the ring since its number is now stale
+    usagePct = -1;
+    fullPush = true;
+    if (mood != M_IDLE) setMood(M_IDLE);
+  }
   if (now - lastFrame < FRAME_MS) return;
   lastFrame = now;
   renderFrame(now);
-  reportFrameTime(now, millis() - now);
 }

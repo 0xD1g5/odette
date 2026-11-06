@@ -6,22 +6,14 @@
 
 #include "mood.h"
 
-struct Rect {
-  int16_t x, y, w, h;
-};
-
-const Rect FULL_RECT = {0, 0, 320, 240};
-
-Rect unionRect(const Rect& a, const Rect& b);
-
-// Initialises the display and allocates the sprite. False if the allocation fails.
+// Initialises the display and allocates the sprite plus a copy of the last pushed frame. False if that fails.
 bool canvasBegin();
 TFT_eSPI& display();
 TFT_eSprite& canvas();
 
-// Swaps in the mood's palette. The next push should be FULL_RECT, since the background changed.
+// Swaps in the mood's palette. Every pixel changes colour, so the next push is the whole screen.
 void canvasSetMood(Mood m);
 
-// Pushes the union of `dirty` and the previous push's rect, so whatever moved out of an area is erased.
-// A full push takes ~38 ms, a face-sized one ~18-27 ms (measured, SPI 40 MHz).
-void canvasPush(const Rect& dirty);
+// Sends what changed since the last push, band by band (or everything when `full`). A full push takes
+// ~38 ms; a blink or glance only a few ms (measured, SPI 40 MHz).
+void canvasPush(bool full);

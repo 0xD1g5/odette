@@ -3,7 +3,6 @@
 
 #include <TFT_eSPI.h>
 
-#include "canvas.h"
 #include "mood.h"
 
 // Where the face is and how it looks this frame. Moods fill it in moodMotion(); clips (quirks, pokes) adjust it.
@@ -19,6 +18,3 @@ struct Pose {
 void moodMotion(Mood m, uint32_t now, Pose& p);
 
 void drawFace(TFT_eSprite& s, Mood m, const Pose& p, uint32_t now);
-
-// Screen area drawFace() may touch for this mood and pose, including mood extras such as bubbles.
-Rect faceBounds(Mood m, const Pose& p);

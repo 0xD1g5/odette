@@ -231,24 +231,3 @@ void drawFace(TFT_eSprite& s, Mood m, const Pose& p, uint32_t now) {
       break;
   }
 }
-
-Rect faceBounds(Mood m, const Pose& p) {
-  // Per mood, what drawFace() can touch at rest, from the mockup coordinates plus a few px of margin.
-  static const Rect BASE[MOOD_COUNT] = {
-      {34, 18, 252, 192},  // idle: cheeks 46-274, brows from y 36, mouth to ~190, plus glance
-      {36, 20, 248, 192},  // happy: cheeks 41-279, brows ~28, mouth to 204 (bounce adds dy)
-      {60, 0, 260, 200},   // thinking: brows ~22, bubble 256-318 x 4-40, mouth to ~190
-      {64, 14, 240, 186},  // sleepy: brows 62, mouth to 194; Z drifts 250-300 up to y ~14
-      {58, 4, 262, 214},   // alert: brows 22, eyes to 150, mouth to 208, bubble 268-316 x 8-70
-      {56, 34, 214, 186},  // error: brows ~40, pout to 203, tear to ~216
-  };
-  Rect r = BASE[m];
-  r.x += p.dx;
-  r.y += p.dy;
-  if (p.squash != 1) {  // stretch grows upwards from the pivot near the chin
-    int top = Xf::PIVOT_Y + (int)((r.y - Xf::PIVOT_Y) * p.squash);
-    r.h += r.y - top;
-    r.y = top;
-  }
-  return r;
-}

@@ -1,7 +1,9 @@
 // Host-side tests for lib/buddy_logic. Run with: pio test -e native
 
+#include <string.h>
 #include <unity.h>
 
+#include "diff.h"
 #include "host.h"
 #include "mood.h"
 #include "poke.h"
@@ -253,8 +255,82 @@ void test_host_expires_once_and_wraps() {
   TEST_ASSERT_FALSE(w.expired(0xFFFFF000u + 130000));  // reported once, until heard again
 }
 
+// ---- frame diff ----
+
+static const int FW = 320, FH = 240, ROW = FW / 2, BAND = 16;
+static uint8_t prevFrame[ROW * FH], curFrame[ROW * FH];
+
+static void setPixel(uint8_t* frame, int x, int y, uint8_t v) {
+  uint8_t& b = frame[y * ROW + x / 2];
+  b = (x % 2 == 0) ? (uint8_t)((b & 0x0F) | (v << 4)) : (uint8_t)((b & 0xF0) | v);  // high nibble = left pixel
+}
+
+void test_diff_identical_frames_push_nothing() {
+  memset(prevFrame, 0x11, sizeof(prevFrame));
+  memset(curFrame, 0x11, sizeof(curFrame));
+  Span spans[16];
+  TEST_ASSERT_EQUAL(0, diffFrames(prevFrame, curFrame, FW, FH, BAND, spans, 16));
+}
+
+void test_diff_one_pixel() {
+  memset(prevFrame, 0, sizeof(prevFrame));
+  memset(curFrame, 0, sizeof(curFrame));
+  setPixel(curFrame, 101, 37, 5);
+  Span spans[16];
+  TEST_ASSERT_EQUAL(1, diffFrames(prevFrame, curFrame, FW, FH, BAND, spans, 16));
+  TEST_ASSERT_EQUAL(100, spans[0].x);  // byte 50 holds pixels 100 and 101
+  TEST_ASSERT_EQUAL(2, spans[0].w);
+  TEST_ASSERT_EQUAL(32, spans[0].y);  // band of rows 32-47
+  TEST_ASSERT_EQUAL(16, spans[0].h);
+  TEST_ASSERT_EQUAL(0, diffFrames(prevFrame, curFrame, FW, FH, BAND, spans, 16));  // prev was updated
+}
+
+void test_diff_span_covers_band_extent() {
+  memset(prevFrame, 0, sizeof(prevFrame));
+  memset(curFrame, 0, sizeof(curFrame));
+  setPixel(curFrame, 10, 0, 1);
+  setPixel(curFrame, 318, 15, 1);  // same band, far right
+  setPixel(curFrame, 160, 239, 1);  // last band
+  Span spans[16];
+  TEST_ASSERT_EQUAL(2, diffFrames(prevFrame, curFrame, FW, FH, BAND, spans, 16));
+  TEST_ASSERT_EQUAL(10, spans[0].x);
+  TEST_ASSERT_EQUAL(310, spans[0].w);  // pixels 10..319
+  TEST_ASSERT_EQUAL(0, spans[0].y);
+  TEST_ASSERT_EQUAL(224, spans[1].y);
+  TEST_ASSERT_EQUAL(16, spans[1].h);
+}
+
+void test_diff_whole_frame() {
+  memset(prevFrame, 0, sizeof(prevFrame));
+  memset(curFrame, 0x77, sizeof(curFrame));
+  Span spans[16];
+  TEST_ASSERT_EQUAL(15, diffFrames(prevFrame, curFrame, FW, FH, BAND, spans, 16));
+  for (int i = 0; i < 15; i++) {
+    TEST_ASSERT_EQUAL(0, spans[i].x);
+    TEST_ASSERT_EQUAL(FW, spans[i].w);
+  }
+  TEST_ASSERT_EQUAL(0, memcmp(prevFrame, curFrame, sizeof(curFrame)));
+}
+
+void test_diff_partial_last_band() {
+  // A height that is not a multiple of the band: the last band is short.
+  static uint8_t p[ROW * 20], c[ROW * 20];
+  memset(p, 0, sizeof(p));
+  memset(c, 0, sizeof(c));
+  c[19 * ROW] = 0x10;
+  Span spans[4];
+  TEST_ASSERT_EQUAL(1, diffFrames(p, c, FW, 20, BAND, spans, 4));
+  TEST_ASSERT_EQUAL(16, spans[0].y);
+  TEST_ASSERT_EQUAL(4, spans[0].h);
+}
+
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_diff_identical_frames_push_nothing);
+  RUN_TEST(test_diff_one_pixel);
+  RUN_TEST(test_diff_span_covers_band_extent);
+  RUN_TEST(test_diff_whole_frame);
+  RUN_TEST(test_diff_partial_last_band);
   RUN_TEST(test_host_heard_after_frame_start_is_not_expired);
   RUN_TEST(test_host_expires_after_timeout);
   RUN_TEST(test_host_expires_once_and_wraps);
