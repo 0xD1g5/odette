@@ -111,7 +111,7 @@ With several sessions open, priority is alert, error, thinking, happy, sleepy, i
 |---|---|
 | Backlight on but screen white or blank | `pio run -e ili9341 -t upload` |
 | White looks black, colors look inverted | `-e st7789_invert`, then `-e st7789_noinvert` |
-| Red and blue swapped in the color test | Add `-DTFT_RGB_ORDER=TFT_BGR` to the env's build_flags |
+| Red and blue swapped (orange shows blue) | Toggle `-DTFT_RGB_ORDER=TFT_BGR` in `[esp32]` build_flags (this board needs it) |
 | Face upside down | Add `-DROTATION=3` to build_flags |
 | Garbled or shifting image | Lower `-DSPI_FREQUENCY=40000000` to `27000000` |
 

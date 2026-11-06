@@ -5,6 +5,7 @@
 
 #include <Arduino.h>
 
+#include "backlight.h"
 #include "canvas.h"
 #include "face.h"
 #include "host.h"
@@ -19,6 +20,9 @@ Mood mood = M_IDLE;
 int usagePct = -1;     // 5-hour usage for the ring; -1 hides it
 bool fullPush = true;  // next frame must push the whole screen (mood colour or ring changed)
 uint32_t lastFrame = 0;
+
+// Sleepy dims the backlight: navy at full brightness glows and washes out the features.
+const uint8_t BACKLIGHT_FULL = 255, BACKLIGHT_SLEEPY = 70;
 
 // The Mac helper resends its state every 30 seconds, so after 2 minutes of silence it is gone and we fall
 // back to idle. Pressing BOOT or "next" hands control back to the board until the helper speaks again.
@@ -42,6 +46,7 @@ void setMood(Mood m) {
   mood = m;
   canvasSetMood(m);
   fullPush = true;
+  backlightTarget(m == M_SLEEPY ? BACKLIGHT_SLEEPY : BACKLIGHT_FULL);
   Serial.printf("state: %s\n", MOOD_NAMES[m]);
 }
 
@@ -144,6 +149,7 @@ void setup() {
     tft.drawString("sprite alloc failed", 10, 100, 4);
     while (true) delay(1000);
   }
+  backlightBegin();
 
 #ifdef COLOR_TEST
   Serial.println("Color test: expect red, green, blue, white");
@@ -167,4 +173,5 @@ void loop() {
   if (now - lastFrame < FRAME_MS) return;
   lastFrame = now;
   renderFrame(now);
+  backlightUpdate();
 }

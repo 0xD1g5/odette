@@ -4,6 +4,7 @@
 #include <unity.h>
 
 #include "diff.h"
+#include "fade.h"
 #include "host.h"
 #include "mood.h"
 #include "poke.h"
@@ -324,8 +325,19 @@ void test_diff_partial_last_band() {
   TEST_ASSERT_EQUAL(4, spans[0].h);
 }
 
+// ---- backlight fade ----
+
+void test_fade_moves_towards_target_without_overshoot() {
+  TEST_ASSERT_EQUAL(240, fadeToward(255, 77, 15));
+  TEST_ASSERT_EQUAL(77, fadeToward(80, 77, 15));
+  TEST_ASSERT_EQUAL(92, fadeToward(77, 255, 15));
+  TEST_ASSERT_EQUAL(255, fadeToward(250, 255, 15));
+  TEST_ASSERT_EQUAL(128, fadeToward(128, 128, 15));
+}
+
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_fade_moves_towards_target_without_overshoot);
   RUN_TEST(test_diff_identical_frames_push_nothing);
   RUN_TEST(test_diff_one_pixel);
   RUN_TEST(test_diff_span_covers_band_extent);

@@ -73,7 +73,7 @@ void moodMotion(Mood m, uint32_t now, Pose& p) {
     }
     case M_ALERT:
       p.eyeOpen = blinkOpen(now);
-      p.dx = ((now / 90) % 2) ? 2 : -2;  // fast jitter
+      p.dx = ((now / 90) % 2) ? 1 : -1;  // fast jitter, kept small: bigger steps tear visibly on this panel
       break;
     case M_SLEEPY:
       p.squash = 1 + 0.04f * wave(now, 4000);  // slow breathing
