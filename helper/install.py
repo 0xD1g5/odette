@@ -171,8 +171,9 @@ def has_pyserial(python):
 def remove_launchagent():
     if os.path.exists(PLIST_PATH):
         os.unlink(PLIST_PATH)
+        # Name the service by label: bootout with a plist path fails once the file is gone.
         print("Removed %s. If it is loaded, run:" % PLIST_PATH)
-        print("  launchctl bootout gui/$(id -u) %s" % PLIST_PATH)
+        print("  launchctl bootout gui/$(id -u)/com.deskbuddy.daemon")
     try:
         os.unlink(LOCAL_DAEMON)
     except OSError:
