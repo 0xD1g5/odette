@@ -95,7 +95,11 @@ The helper has three parts, all in `helper/`:
 
 The installer copies `buddy_hook.py` to `~/.desk-buddy/bin/` and points the hooks at a system python3 plus that copy, with `|| true`, so Claude Code is never affected when an external drive is unmounted. Re-run `--apply` after editing `buddy_hook.py` to refresh the copy. Override the interpreter with `--hook-python`.
 
-Optional, start the daemon at login: `.venv/bin/python helper/install.py --launchagent --apply`, then run the `launchctl bootstrap` line it prints. The installer refuses if that interpreter cannot import pyserial, since the daemon would then exit at every start and launchd would keep restarting it. It copies `buddy_daemon.py` to `~/.desk-buddy/bin/` like the hook, so re-run it after editing the daemon. The interpreter still runs from the venv, so if the project sits on an external drive the daemon cannot start at login while that drive is unmounted.
+Optional, start the daemon at login: `.venv/bin/python helper/install.py --launchagent --apply`, then run the `launchctl bootstrap` line it prints. The installer refuses if that interpreter cannot import pyserial, since the daemon would then exit at every start and launchd would keep restarting it. It copies `buddy_daemon.py` to `~/.desk-buddy/bin/` like the hook, so re-run it after editing the daemon. The plist uses the interpreter that runs the installer. If the project sits on an external drive, give the daemon its own venv in your home folder, or it cannot start at login while the drive is unmounted, and macOS privacy protection can block a background process from reading the drive even when it is mounted:
+
+    python3 -m venv ~/.desk-buddy/venv
+    ~/.desk-buddy/venv/bin/pip install -r helper/requirements.txt
+    ~/.desk-buddy/venv/bin/python helper/install.py --launchagent --apply
 
 ### Upgrading
 
