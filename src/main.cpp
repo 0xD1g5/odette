@@ -11,9 +11,12 @@
 #include "face.h"
 #include "host.h"
 #include "palette.h"
+#include "picker.h"
+#include "picker_screen.h"
 #include "poke.h"
 #include "protocol.h"
 #include "ring.h"
+#include "style_store.h"
 #include "touch.h"
 
 const uint32_t FRAME_MS = 33;
@@ -25,6 +28,8 @@ Mood mood = M_IDLE;
 int usagePct = -1;     // 5-hour usage for the ring; -1 hides it
 bool fullPush = true;  // next frame must push the whole screen (mood colour or ring changed)
 uint32_t lastFrame = 0;
+uint32_t faceStart = 0;  // when the picker handed over to the face
+Style style = S_OWL;  // picked at boot, fixed until the next boot
 
 // Sleepy dims the backlight: navy at full brightness glows and washes out the features.
 const uint8_t BACKLIGHT_FULL = 255, BACKLIGHT_SLEEPY = 70;
@@ -157,22 +162,55 @@ void handleTouch(uint32_t now) {
   }
 }
 
-void handleButton(uint32_t now) {
+// True once per press of BOOT (falling edge, 250 ms debounce).
+bool bootPressed(uint32_t now) {
   static bool last = true;
   static uint32_t lastPress = 0;
   bool cur = digitalRead(0);
-  if (last && !cur && now - lastPress > 250) {
-    lastPress = now;
-    host = HostWatch(120000);
-    setMood((Mood)((mood + 1) % MOOD_COUNT));
-  }
+  bool pressed = last && !cur && now - lastPress > 250;
+  if (pressed) lastPress = now;
   last = cur;
+  return pressed;
 }
 
-// For the first 30 s after boot, report how long frames take, to check the ~30 fps budget.
+void handleButton(uint32_t now) {
+  if (!bootPressed(now)) return;
+  host = HostWatch(120000);
+  setMood((Mood)((mood + 1) % MOOD_COUNT));
+}
+
+// The boot picker: the saved style starts after 30 s, a tap or BOOT flips the choice. Anything the helper
+// sends meanwhile is thrown away; it resends every 30 s, so the face catches up soon after.
+Style runPicker() {
+  StylePicker picker(loadStyle(), millis());
+  PokeDetector taps;
+  canvasSetMood(M_IDLE);
+  bool first = true;
+  uint32_t lastDraw = 0;
+  while (true) {
+    uint32_t now = millis();
+    if (picker.done(now)) break;
+    if (taps.update(touchPressed(), now) || bootPressed(now)) picker.tap(now);
+    while (Serial.available()) Serial.read();
+    if (first || now - lastDraw >= FRAME_MS) {
+      lastDraw = now;
+      TFT_eSprite& s = canvas();
+      s.fillSprite(P_BG);
+      drawPicker(s, picker, now);
+      canvasPush(first);
+      first = false;
+    }
+    delay(1);
+  }
+  saveStyle(picker.highlighted());
+  Serial.printf("style: %s\n", STYLE_NAMES[picker.highlighted()]);
+  return picker.highlighted();
+}
+
+// For the first 30 s after the face starts, report how long frames take, to check the ~30 fps budget.
 void reportFrameTime(uint32_t now, uint32_t drawUs, uint32_t pushUs) {
   static uint32_t draw = 0, push = 0, frames = 0, lastReport = 0;
-  if (now > 30000) return;
+  if (now - faceStart > 30000) return;
   draw += drawUs;
   push += pushUs;
   frames++;
@@ -222,10 +260,12 @@ void setup() {
   colorTest();
 #endif
 
+  style = runPicker();
   randomSeed(esp_random());
   quirks = QuirkScheduler(esp_random());
   setMood(M_IDLE);
   Serial.println(HELP);
+  faceStart = millis();
 }
 
 void loop() {
