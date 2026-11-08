@@ -91,9 +91,9 @@ static void drawSad(TFT_eSprite& s, const Xf& f, const Pose& p, uint32_t now) {
   // Tear: falls 40 px from under the left eye every 2.4 s, visible for the middle 70% of the fall.
   float t = (now % 2400) / 2400.0f;
   if (t > 0.15f && t < 0.85f) {
-    int ty = 164 + (int)(40 * t * t);  // ease-in
-    s.fillTriangle(58, ty, 53, ty + 10, 63, ty + 10, P_WHITE);
-    s.fillCircle(58, ty + 12, 5, P_WHITE);
+    int ty = 170 + (int)(40 * t * t);  // ease-in; x 66 keeps it clear of the usage ring
+    s.fillTriangle(66, ty, 61, ty + 10, 71, ty + 10, P_WHITE);
+    s.fillCircle(66, ty + 12, 5, P_WHITE);
   }
 }
 
@@ -103,7 +103,7 @@ static void drawSleepy(TFT_eSprite& s, const Xf& f, uint32_t now) {
   bar(s, f, 192, 80, 70, 10, 0, P_INK);
   quad(s, f.X(54), f.Y(126), f.X(96), f.Y(160), f.X(138), f.Y(126), 12, P_INK);
   quad(s, f.X(182), f.Y(126), f.X(224), f.Y(160), f.X(266), f.Y(126), 12, P_INK);
-  drawSleepyZs(s, now, 20);
+  drawSleepyZs(s, now, 12);  // low enough to clear the top rows, high enough to clear the brow
 }
 
 void drawOwlFace(TFT_eSprite& s, Mood m, const Pose& p, uint32_t now) {
