@@ -7,9 +7,11 @@
 #include "fade.h"
 #include "host.h"
 #include "mood.h"
+#include "picker.h"
 #include "poke.h"
 #include "protocol.h"
 #include "scheduler.h"
+#include "style.h"
 
 void setUp() {}
 void tearDown() {}
@@ -348,8 +350,65 @@ void test_fade_moves_towards_target_without_overshoot() {
   TEST_ASSERT_EQUAL(128, fadeToward(128, 128, 15));
 }
 
+// ---- face style and boot picker ----
+
+void test_style_from_saved() {
+  TEST_ASSERT_EQUAL(S_OWL, styleFromSaved(-1));  // nothing saved yet
+  TEST_ASSERT_EQUAL(S_OWL, styleFromSaved(0));
+  TEST_ASSERT_EQUAL(S_CLASSIC, styleFromSaved(1));
+  TEST_ASSERT_EQUAL(S_OWL, styleFromSaved(7));  // corrupt or from a later version
+  TEST_ASSERT_EQUAL(S_OWL, styleFromSaved(-5));
+  TEST_ASSERT_EQUAL_STRING("owl", STYLE_NAMES[S_OWL]);
+  TEST_ASSERT_EQUAL_STRING("classic", STYLE_NAMES[S_CLASSIC]);
+}
+
+void test_picker_starts_saved_style_after_30s() {
+  StylePicker p(S_CLASSIC, 1000);
+  TEST_ASSERT_EQUAL(S_CLASSIC, p.highlighted());
+  TEST_ASSERT_FALSE(p.done(30999));
+  TEST_ASSERT_TRUE(p.done(31000));
+  TEST_ASSERT_EQUAL(30000, p.windowMs());
+}
+
+void test_picker_tap_flips_and_shortens() {
+  StylePicker p(S_CLASSIC, 1000);
+  p.tap(2000);
+  TEST_ASSERT_EQUAL(S_OWL, p.highlighted());
+  TEST_ASSERT_FALSE(p.done(6999));
+  TEST_ASSERT_TRUE(p.done(7000));
+  TEST_ASSERT_EQUAL(5000, p.windowMs());
+}
+
+void test_picker_each_tap_restarts_countdown() {
+  StylePicker p(S_OWL, 0);
+  p.tap(2000);
+  p.tap(6000);
+  TEST_ASSERT_EQUAL(S_OWL, p.highlighted());
+  TEST_ASSERT_FALSE(p.done(10999));
+  TEST_ASSERT_TRUE(p.done(11000));
+}
+
+void test_picker_ms_left() {
+  StylePicker p(S_OWL, 1000);
+  TEST_ASSERT_EQUAL(30000, p.msLeft(1000));
+  TEST_ASSERT_EQUAL(15000, p.msLeft(16000));
+  TEST_ASSERT_EQUAL(0, p.msLeft(40000));
+}
+
+void test_picker_wraps_millis() {
+  StylePicker p(S_OWL, 0xFFFFF000u);
+  TEST_ASSERT_FALSE(p.done(0xFFFFF000u + 29999u));
+  TEST_ASSERT_TRUE(p.done(0xFFFFF000u + 30000u));
+}
+
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_style_from_saved);
+  RUN_TEST(test_picker_starts_saved_style_after_30s);
+  RUN_TEST(test_picker_tap_flips_and_shortens);
+  RUN_TEST(test_picker_each_tap_restarts_countdown);
+  RUN_TEST(test_picker_ms_left);
+  RUN_TEST(test_picker_wraps_millis);
   RUN_TEST(test_fade_moves_towards_target_without_overshoot);
   RUN_TEST(test_parse_quirk);
   RUN_TEST(test_diff_identical_frames_push_nothing);
