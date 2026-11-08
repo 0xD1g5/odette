@@ -10,6 +10,7 @@
 #include "clips.h"
 #include "face.h"
 #include "host.h"
+#include "owl_face.h"
 #include "palette.h"
 #include "picker.h"
 #include "picker_screen.h"
@@ -100,6 +101,7 @@ void applyCommand(const char* line) {
       setMood((Mood)((mood + 1) % MOOD_COUNT));
       return;
     case CMD_QUIRK:
+      if (style == S_OWL) return;  // the owl has no clips yet, and the Classic ones draw a mouth
       startClip(clipForQuirk(cmd.quirk), false);
       return;
     case CMD_USAGE:
@@ -140,6 +142,13 @@ void handleTouch(uint32_t now) {
   lastPoll = now;
   if (!pokes.update(touchPressed(), now)) return;
   Serial.println("poke");
+  if (style == S_OWL) {  // no reactions yet: a poke only wakes him
+    if (mood == M_SLEEPY) {
+      setMood(M_IDLE);
+      backlightSnap(BACKLIGHT_FULL);
+    }
+    return;
+  }
   switch (chooseReaction(mood, clip != CLIP_NONE && clipIsReaction, esp_random())) {
     case R_STARTLE:
       clipSnorePopped(clip == CLIP_SNORE);
@@ -230,8 +239,8 @@ void renderFrame(uint32_t now) {
   s.fillSprite(P_BG);
   bool clipDrawn = clip != CLIP_NONE && drawClip(s, clip, mood, now - clipStart, now, pose);
   if (clip != CLIP_NONE && !clipDrawn) endClip();
-  if (!clipDrawn) drawFace(s, mood, pose, now);
-  drawRing(s, usagePct);
+  if (!clipDrawn) (style == S_OWL ? drawOwlFace : drawFace)(s, mood, pose, now);
+  drawRing(s, usagePct, style == S_OWL ? RING_X_OWL : RING_X_CLASSIC);
   uint32_t t1 = micros();
   canvasPush(fullPush);
   fullPush = false;
@@ -278,7 +287,7 @@ void loop() {
     fullPush = true;
     if (mood != M_IDLE) setMood(M_IDLE);
   }
-  if (clip == CLIP_NONE) {
+  if (clip == CLIP_NONE && style == S_CLASSIC) {
     Quirk q = quirks.update(now);
     if (q != Q_NONE) {
       Serial.printf("quirk %d\n", q);  // for checking timing; the helper ignores it

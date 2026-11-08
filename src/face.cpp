@@ -188,6 +188,10 @@ static void drawSleepy(TFT_eSprite& s, const Xf& f, uint32_t now) {
   quad(s, f.X(196), f.Y(112), f.X(221), f.Y(134), f.X(246), f.Y(112), 10, P_INK);
   s.fillEllipse(lroundf(f.X(160)), lroundf(f.Y(180)), 12, lroundf(f.H(14)), P_INK);
   s.fillEllipse(lroundf(f.X(160)), lroundf(f.Y(180)), 6, lroundf(f.H(8)), P_BG);
+  drawSleepyZs(s, now, 0);
+}
+
+void drawSleepyZs(TFT_eSprite& s, uint32_t now, int dy) {
   // Each Z drifts 18 px right and 34 px up over 3 s; the small one runs half a cycle behind.
   s.setTextDatum(BL_DATUM);
   s.setTextColor(P_ACCENT);
@@ -198,7 +202,7 @@ static void drawSleepy(TFT_eSprite& s, const Xf& f, uint32_t now) {
   for (const auto& z : zs) {
     float t = phase(now, 3000, z.offset);
     if (t < 0.12f || t > 0.9f) continue;  // fade in and out by not drawing at the ends
-    s.drawString(z.font == 4 ? "Z" : "z", z.x + (int)(18 * t), z.y - (int)(34 * t), z.font);
+    s.drawString(z.font == 4 ? "Z" : "z", z.x + (int)(18 * t), z.y + dy - (int)(34 * t), z.font);
   }
   s.setTextDatum(TL_DATUM);
 }

@@ -51,5 +51,8 @@ class Path {
   int n_ = 0;
 };
 
+// Round eye of radius `r` centred on (cx, cy), scaled vertically by `open` about its centre (an owl eye).
+void disc(TFT_eSprite& s, const Xf& f, float cx, float cy, float r, float open, uint8_t col);
+
 // Upright pill (radius = half the narrower side), scaled vertically by `open` about its centre: an eye.
 void pill(TFT_eSprite& s, const Xf& f, float x, float y, float w, float h, float open, uint8_t col);

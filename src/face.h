@@ -18,3 +18,6 @@ struct Pose {
 void moodMotion(Mood m, uint32_t now, Pose& p);
 
 void drawFace(TFT_eSprite& s, Mood m, const Pose& p, uint32_t now);
+
+// Sleepy's "Z z" drifting up on the right, `dy` pixels lower than the Classic face draws them.
+void drawSleepyZs(TFT_eSprite& s, uint32_t now, int dy);

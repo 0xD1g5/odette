@@ -82,3 +82,8 @@ void pill(TFT_eSprite& s, const Xf& f, float x, float y, float w, float h, float
   int r = (int)(min(w, ph) / 2);
   s.fillRoundRect((int)lroundf(f.X(x)), (int)lroundf(cy - ph / 2), (int)lroundf(w), (int)lroundf(ph), r, col);
 }
+
+void disc(TFT_eSprite& s, const Xf& f, float cx, float cy, float r, float open, uint8_t col) {
+  int ry = (int)lroundf(max(2.0f, f.H(r) * open));
+  s.fillEllipse((int)lroundf(f.X(cx)), (int)lroundf(f.Y(cy)), (int)lroundf(r), ry, col);
+}
