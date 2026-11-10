@@ -2,28 +2,14 @@
 
 #include <math.h>
 
+#include "anim.h"
 #include "draw.h"
 #include "palette.h"
 
-static const float PI_F = 3.14159265f;
 static const int SNORE_X = 176, SNORE_Y = 166;  // where the snore bubble grows, at the mouth
 static bool snorePopped = false;
 
 void clipSnorePopped(bool popped) { snorePopped = popped; }
-
-// ---- timing helpers ----
-
-static float clamp01(float x) { return x < 0 ? 0 : (x > 1 ? 1 : x); }
-static float easeInOut(float x) { return 0.5f - 0.5f * cosf(PI_F * clamp01(x)); }
-// Progress through [start, end) of the clip, eased.
-static float segment(uint32_t t, uint32_t start, uint32_t end) {
-  return easeInOut((float)((int32_t)t - (int32_t)start) / (end - start));
-}
-// A dip from 1 down to `low` and back over [start, end): a slow blink.
-static float dip(uint32_t t, uint32_t start, uint32_t end, float low) {
-  if (t < start || t >= end) return 1;
-  return 1 - (1 - low) * sinf(PI_F * (t - start) / (end - start));
-}
 
 // ---- reactions ----
 
@@ -103,27 +89,6 @@ static bool startle(TFT_eSprite& s, uint32_t t, uint32_t now, Pose p) {
 }
 
 // ---- idle quirks (idle-vignettes.html, idle-vignettes-3.html) ----
-
-// A keyframe track like the mockups' CSS @keyframes: value `v` at `at` ms, eased in between.
-struct Key {
-  uint32_t at;
-  float v;
-};
-
-template <int N>
-static float track(uint32_t t, const Key (&k)[N]) {
-  if (t <= k[0].at) return k[0].v;
-  for (int i = 1; i < N; i++) {
-    if (t < k[i].at) return k[i - 1].v + (k[i].v - k[i - 1].v) * segment(t, k[i - 1].at, k[i].at);
-  }
-  return k[N - 1].v;
-}
-
-// 0..1..0 over `period` ms.
-static float wave(uint32_t t, uint32_t period) { return 0.5f - 0.5f * cosf(2 * PI_F * (t % period) / period); }
-
-// Where a repeating effect (note, steam, crumb) is in its own cycle, 0..1.
-static float cycle(uint32_t t, uint32_t period, uint32_t offset) { return ((t + period - offset) % period) / (float)period; }
 
 static void idleEyes(TFT_eSprite& s, const Xf& f, float lookPx = 0) {
   Xf e = f.moved(lookPx, 0);

@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unity.h>
 
+#include "anim.h"
 #include "diff.h"
 #include "fade.h"
 #include "host.h"
@@ -401,8 +402,45 @@ void test_picker_wraps_millis() {
   TEST_ASSERT_TRUE(p.done(0xFFFFF000u + 30000u));
 }
 
+// ---- anim: the clip timing helpers ----
+
+void test_anim_segment_eases_and_clamps() {
+  TEST_ASSERT_FLOAT_WITHIN(1e-5f, 0.0f, segment(50, 100, 300));   // before the start
+  TEST_ASSERT_FLOAT_WITHIN(1e-5f, 0.0f, segment(100, 100, 300));
+  TEST_ASSERT_FLOAT_WITHIN(1e-5f, 0.5f, segment(200, 100, 300));
+  TEST_ASSERT_FLOAT_WITHIN(1e-5f, 1.0f, segment(300, 100, 300));
+  TEST_ASSERT_FLOAT_WITHIN(1e-5f, 1.0f, segment(900, 100, 300));  // after the end
+}
+
+void test_anim_dip_is_a_slow_blink() {
+  TEST_ASSERT_FLOAT_WITHIN(1e-5f, 1.0f, dip(999, 1000, 1200, 0.1f));
+  TEST_ASSERT_FLOAT_WITHIN(1e-5f, 0.1f, dip(1100, 1000, 1200, 0.1f));
+  TEST_ASSERT_FLOAT_WITHIN(1e-5f, 1.0f, dip(1200, 1000, 1200, 0.1f));
+}
+
+void test_anim_wave_and_cycle() {
+  TEST_ASSERT_FLOAT_WITHIN(1e-5f, 0.0f, wave(0, 1000));
+  TEST_ASSERT_FLOAT_WITHIN(1e-5f, 1.0f, wave(500, 1000));
+  TEST_ASSERT_FLOAT_WITHIN(1e-5f, 1.0f, wave(1500, 1000));  // repeats
+  TEST_ASSERT_FLOAT_WITHIN(1e-5f, 0.25f, cycle(250, 1000, 0));
+  TEST_ASSERT_FLOAT_WITHIN(1e-5f, 0.9f, cycle(100, 1000, 200));  // offset wraps
+}
+
+void test_anim_track_follows_keys() {
+  static const Key RISE[] = {{0, 90}, {560, 90}, {1400, 0}};
+  TEST_ASSERT_FLOAT_WITHIN(1e-4f, 90.0f, track(0, RISE));
+  TEST_ASSERT_FLOAT_WITHIN(1e-4f, 45.0f, track(980, RISE));
+  TEST_ASSERT_FLOAT_WITHIN(1e-4f, 0.0f, track(5000, RISE));
+  static const Key JUMP[] = {{0, 0}, {6929, 340}, {6930, -340}, {9000, 0}};  // peek's wrap to the other side
+  TEST_ASSERT_FLOAT_WITHIN(1e-4f, -340.0f, track(6930, JUMP));
+}
+
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_anim_segment_eases_and_clamps);
+  RUN_TEST(test_anim_dip_is_a_slow_blink);
+  RUN_TEST(test_anim_wave_and_cycle);
+  RUN_TEST(test_anim_track_follows_keys);
   RUN_TEST(test_style_from_saved);
   RUN_TEST(test_picker_starts_saved_style_after_30s);
   RUN_TEST(test_picker_tap_flips_and_shortens);
