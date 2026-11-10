@@ -131,7 +131,7 @@ static bool perkUp(TFT_eSprite& s, uint32_t t) {
   Pose p = still();
   p.dx = jit;
   p.eyeOpen = 0.42f + 0.58f * (1 - drowsy) + 0.08f * pop;
-  p.browLift = 14 * pop - 22 * drowsy;
+  p.browLift = 9 * pop - 22 * drowsy;  // 9 px keeps the raised brows just below the top 20 rows
   drawOwlIdle(s, p, 52 + 6 * pop);
   Xf f;
   if (t >= 5200) cheeks(s, f, 194, 20, 10, P_CHEEK);  // a warm "ahh"
@@ -145,7 +145,7 @@ static bool perkUp(TFT_eSprite& s, uint32_t t) {
     }
   }
   float drink = track(t, DRINK);
-  int y = lroundf(212 + track(t, RISE) + 44 * drink);
+  int y = lroundf(209 + track(t, RISE) + 44 * drink);  // at rest the mug clears the bottom edge by 5 px
   if (t < 2000) {
     for (int k = 0; k < 2; k++) {  // steam, until the mug goes down to the beak
       float u = cycle(t, 2000, k * 1000);
@@ -180,7 +180,7 @@ static bool stretch(TFT_eSprite& s, uint32_t t) {
     drawOwlIdle(s, p);
   } else {
     Xf b = f;  // the brows ride up less than he stretches, so they stay out of the hidden top rows
-    b.squash = fminf(f.squash, 1.03f);
+    b.squash = fminf(f.squash, 1.025f);
     bar(s, b, 58, 28, 70, 11, -6, P_INK);
     bar(s, b, 192, 28, 70, 11, 6, P_INK);
     shut(s, f);
@@ -193,7 +193,7 @@ static bool stretch(TFT_eSprite& s, uint32_t t) {
   }
   if (t >= 4300 && t < 5100) {  // feather ticks at the sides while he ruffles
     float u = segment(t, 4300, 5100);
-    static const int TICKS[][2] = {{10, 150}, {310, 150}, {14, 120}, {306, 120}};
+    static const int TICKS[][2] = {{12, 150}, {308, 150}, {16, 120}, {304, 120}};
     for (int i = 0; i < 4; i++) {
       int x = TICKS[i][0], y = TICKS[i][1];
       stroke(s, x, y - 10 * u, x + (i % 2 ? 6 : -6), y - 18 * u, 3, P_INK);
@@ -301,11 +301,11 @@ static bool startle(TFT_eSprite& s, uint32_t t, Pose p) {
     p.dy = t < 450 ? lroundf(-12 * sinf(PI_F * t / 450)) : 0;
     r = 58;
     p.eyeOpen = 1.05f;
-    p.browLift = 10;
+    p.browLift = 9 + p.dy;  // brows lag the jump a little, so their tops never pass y 20
     p.gazeX = p.gazeY = 0;
   } else if (t < 1700) {
     r = 58 - 6 * segment(t, 800, 1200);
-    p.browLift = 10 * (1 - segment(t, 800, 1200));
+    p.browLift = 9 * (1 - segment(t, 800, 1200));
     p.eyeOpen = dip(t, 1000, 1300, 0.15f) * dip(t, 1400, 1700, 0.2f);
     p.gazeX = p.gazeY = 0;
   } else {
@@ -330,8 +330,8 @@ static bool giggle(TFT_eSprite& s, uint32_t t, uint32_t duration) {
   Xf f;
   f.dx = 5 * sinf(2 * PI_F * t / 220.0f);
   f.dy = -3 * fabsf(sinf(2 * PI_F * t / 440.0f));
-  bar(s, f, 58, 24, 70, 11, -8, P_INK);
-  bar(s, f, 192, 24, 70, 11, 8, P_INK);
+  bar(s, f, 58, 28, 70, 11, -8, P_INK);  // low enough that the bounce keeps them below y 20
+  bar(s, f, 192, 28, 70, 11, 8, P_INK);
   arcs(s, f, 134, 84, 20);
   blob(s, f, 96, 178, 26, 14, P_BLUSH);
   blob(s, f, 224, 178, 26, 14, P_BLUSH);
