@@ -10,6 +10,7 @@
 #include "clips.h"
 #include "face.h"
 #include "host.h"
+#include "owl_clips.h"
 #include "owl_face.h"
 #include "palette.h"
 #include "picker.h"
@@ -101,7 +102,6 @@ void applyCommand(const char* line) {
       setMood((Mood)((mood + 1) % MOOD_COUNT));
       return;
     case CMD_QUIRK:
-      if (style == S_OWL) return;  // the owl has no clips yet, and the Classic ones draw a mouth
       startClip(clipForQuirk(cmd.quirk), false);
       return;
     case CMD_USAGE:
@@ -237,7 +237,7 @@ void renderFrame(uint32_t now) {
   moodMotion(mood, now, pose);
   TFT_eSprite& s = canvas();
   s.fillSprite(P_BG);
-  bool clipDrawn = clip != CLIP_NONE && drawClip(s, clip, mood, now - clipStart, now, pose);
+  bool clipDrawn = clip != CLIP_NONE && (style == S_OWL ? drawOwlClip : drawClip)(s, clip, mood, now - clipStart, now, pose);
   if (clip != CLIP_NONE && !clipDrawn) endClip();
   if (!clipDrawn) (style == S_OWL ? drawOwlFace : drawFace)(s, mood, pose, now);
   drawRing(s, usagePct, style == S_OWL ? RING_X_OWL : RING_X_CLASSIC);
@@ -287,7 +287,7 @@ void loop() {
     fullPush = true;
     if (mood != M_IDLE) setMood(M_IDLE);
   }
-  if (clip == CLIP_NONE && style == S_CLASSIC) {
+  if (clip == CLIP_NONE) {
     Quirk q = quirks.update(now);
     if (q != Q_NONE) {
       Serial.printf("quirk %d\n", q);  // for checking timing; the helper ignores it

@@ -56,6 +56,7 @@ static void build(uint32_t bg, uint32_t ink, bool sleepy, uint16_t* p) {
     p[P_COOKIE] = rgb565(COOKIE);
     p[P_CHIP] = rgb565(CHIP);
     p[P_COFFEE] = rgb565(COFFEE);
+    p[P_EMPTY] = rgb565(blend(WHITE, COFFEE, 0.75f));
   }
 }
 

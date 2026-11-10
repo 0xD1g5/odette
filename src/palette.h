@@ -27,6 +27,7 @@ enum PalIndex : uint8_t {
   P_COOKIE = P_PROP_A,
   P_CHIP = P_PROP_B,
   P_COFFEE = P_PROP_C,
+  P_EMPTY = P_PROP_D,  // the owl's emptied mug: white at 75% over coffee
   // Sleepy's snore bubble.
   P_SNORE_FILL = P_PROP_A,
   P_SNORE_EDGE = P_PROP_B,

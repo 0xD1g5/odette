@@ -8,3 +8,6 @@
 #include "mood.h"
 
 void drawOwlFace(TFT_eSprite& s, Mood m, const Pose& p, uint32_t now);
+
+// The idle face with eyes of radius `r` (52 normally; clips pop them bigger), in pose `p`.
+void drawOwlIdle(TFT_eSprite& s, const Pose& p, float r = 52);

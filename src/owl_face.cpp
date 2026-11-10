@@ -18,17 +18,22 @@ static void blob(TFT_eSprite& s, const Xf& f, float x, float y, int rx, int ry, 
   s.fillEllipse(lroundf(f.X(x)), lroundf(f.Y(y)), rx, lroundf(f.H(ry)), col);
 }
 
-// The owl stare: big discs, brows tilted in a little, blush under each eye.
-static void drawIdle(TFT_eSprite& s, const Xf& f, const Pose& p) {
+// The owl stare: big discs, brows tilted in a little, blush under each eye. Highlights scale with the eye.
+void drawOwlIdle(TFT_eSprite& s, const Pose& p, float r) {
+  Xf f;
+  f.dx = p.dx;
+  f.dy = p.dy;
+  f.squash = p.squash;
   Xf e = f.moved(p.gazeX * GAZE_X_PX, p.gazeY * GAZE_Y_PX);
+  float k = r / 52;
   bar(s, e, 58, 34 - p.browLift, 70, 11, 8, P_INK);
   bar(s, e, 192, 34 - p.browLift, 70, 11, -8, P_INK);
-  disc(s, e, 96, 118, 52, p.eyeOpen, P_INK);
-  disc(s, e, 224, 118, 52, p.eyeOpen, P_INK);
-  highlight(s, e, 116, 96, 118, 14, p.eyeOpen);
-  highlight(s, e, 244, 96, 118, 14, p.eyeOpen);
-  highlight(s, e, 96, 136, 118, 5, p.eyeOpen);
-  highlight(s, e, 224, 136, 118, 5, p.eyeOpen);
+  disc(s, e, 96, 118, r, p.eyeOpen, P_INK);
+  disc(s, e, 224, 118, r, p.eyeOpen, P_INK);
+  highlight(s, e, 96 + 20 * k, 118 - 22 * k, 118, lroundf(14 * k), p.eyeOpen);
+  highlight(s, e, 224 + 20 * k, 118 - 22 * k, 118, lroundf(14 * k), p.eyeOpen);
+  highlight(s, e, 96, 118 + 18 * k, 118, 5, p.eyeOpen);
+  highlight(s, e, 224, 118 + 18 * k, 118, 5, p.eyeOpen);
   blob(s, f, 100, 194, 18, 9, P_BLUSH);
   blob(s, f, 220, 194, 18, 9, P_BLUSH);
 }
@@ -113,7 +118,7 @@ void drawOwlFace(TFT_eSprite& s, Mood m, const Pose& p, uint32_t now) {
   f.squash = p.squash;
   switch (m) {
     case M_IDLE:
-      drawIdle(s, f, p);
+      drawOwlIdle(s, p);
       break;
     case M_HAPPY:
       drawHappy(s, f, p);
