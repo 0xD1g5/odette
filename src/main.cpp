@@ -10,6 +10,7 @@
 #include "clips.h"
 #include "face.h"
 #include "host.h"
+#include "anim.h"
 #include "owl_clips.h"
 #include "owl_face.h"
 #include "palette.h"
@@ -230,7 +231,7 @@ void renderFrame(uint32_t now) {
   moodMotion(mood, now, pose);
   TFT_eSprite& s = canvas();
   s.fillSprite(P_BG);
-  bool clipDrawn = clip != CLIP_NONE && (style == S_OWL ? drawOwlClip : drawClip)(s, clip, mood, now - clipStart, now, pose);
+  bool clipDrawn = clip != CLIP_NONE && (style == S_OWL ? drawOwlClip : drawClip)(s, clip, mood, clipElapsed(now, clipStart), now, pose);
   if (clip != CLIP_NONE && !clipDrawn) endClip();
   if (!clipDrawn) (style == S_OWL ? drawOwlFace : drawFace)(s, mood, pose, now);
   drawRing(s, usagePct, style == S_OWL ? RING_X_OWL : RING_X_CLASSIC);

@@ -43,3 +43,7 @@ inline float wave(uint32_t t, uint32_t period) { return 0.5f - 0.5f * cosf(2 * P
 inline float cycle(uint32_t t, uint32_t period, uint32_t offset) {
   return ((t + period - offset) % period) / (float)period;
 }
+
+// How far into a clip `now` is. A clip can start a tick after the frame's clock was read, so a start just
+// after `now` counts as 0 rather than wrapping to ~49 days and ending the clip before it is ever drawn.
+inline uint32_t clipElapsed(uint32_t now, uint32_t start) { return (int32_t)(now - start) < 0 ? 0 : now - start; }

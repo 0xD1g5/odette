@@ -435,12 +435,19 @@ void test_anim_track_follows_keys() {
   TEST_ASSERT_FLOAT_WITHIN(1e-4f, -340.0f, track(6930, JUMP));
 }
 
+void test_anim_clip_elapsed_never_wraps() {
+  TEST_ASSERT_EQUAL_UINT32(250, clipElapsed(1250, 1000));
+  TEST_ASSERT_EQUAL_UINT32(0, clipElapsed(1000, 1001));  // the clip started a tick after this frame's clock
+  TEST_ASSERT_EQUAL_UINT32(20, clipElapsed(10, 0xFFFFFFF6u));  // millis() wrapping mid-clip
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_anim_segment_eases_and_clamps);
   RUN_TEST(test_anim_dip_is_a_slow_blink);
   RUN_TEST(test_anim_wave_and_cycle);
   RUN_TEST(test_anim_track_follows_keys);
+  RUN_TEST(test_anim_clip_elapsed_never_wraps);
   RUN_TEST(test_style_from_saved);
   RUN_TEST(test_picker_starts_saved_style_after_30s);
   RUN_TEST(test_picker_tap_flips_and_shortens);

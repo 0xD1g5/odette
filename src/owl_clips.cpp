@@ -179,8 +179,10 @@ static bool stretch(TFT_eSprite& s, uint32_t t) {
     p.eyeOpen = dip(t, 5200, 5800, 0.35f);
     drawOwlIdle(s, p);
   } else {
-    bar(s, f, 58, 28, 70, 11, -6, P_INK);
-    bar(s, f, 192, 28, 70, 11, 6, P_INK);
+    Xf b = f;  // the brows ride up less than he stretches, so they stay out of the hidden top rows
+    b.squash = fminf(f.squash, 1.03f);
+    bar(s, b, 58, 28, 70, 11, -6, P_INK);
+    bar(s, b, 192, 28, 70, 11, 6, P_INK);
     shut(s, f);
     cheeks(s, f, 194, 18, 9, P_BLUSH);
   }
