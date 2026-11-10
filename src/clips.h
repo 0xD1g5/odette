@@ -32,3 +32,6 @@ ClipId clipForQuirk(Quirk q);
 
 // Pops a snore bubble at the start of the startle (the poke woke him mid-snore).
 void clipSnorePopped(bool popped);
+
+// What clipSnorePopped() last set, so the owl's startle can burst its own bubble.
+bool clipSnoreBurst();

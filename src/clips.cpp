@@ -10,6 +10,7 @@ static const int SNORE_X = 176, SNORE_Y = 166;  // where the snore bubble grows,
 static bool snorePopped = false;
 
 void clipSnorePopped(bool popped) { snorePopped = popped; }
+bool clipSnoreBurst() { return snorePopped; }
 
 // ---- reactions ----
 

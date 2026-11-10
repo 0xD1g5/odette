@@ -288,6 +288,76 @@ static bool snore(TFT_eSprite& s, uint32_t t, uint32_t now, const Pose& p) {
   return true;
 }
 
+// ---- poke reactions ----
+
+// Woken from sleepy: eyes pop to alert size with a "!" bottom right, a small jump, groggy blinks, a look
+// around. The caller has already switched to idle and swapped in the startle's pink palette.
+static bool startle(TFT_eSprite& s, uint32_t t, Pose p) {
+  if (t >= 2500) return false;
+  float r = 52;
+  if (t < 800) {  // the jolt: 12 px, so the brows stay on screen
+    p.dy = t < 450 ? lroundf(-12 * sinf(PI_F * t / 450)) : 0;
+    r = 58;
+    p.eyeOpen = 1.05f;
+    p.browLift = 10;
+    p.gazeX = p.gazeY = 0;
+  } else if (t < 1700) {
+    r = 58 - 6 * segment(t, 800, 1200);
+    p.browLift = 10 * (1 - segment(t, 800, 1200));
+    p.eyeOpen = dip(t, 1000, 1300, 0.15f) * dip(t, 1400, 1700, 0.2f);
+    p.gazeX = p.gazeY = 0;
+  } else {
+    float u = (t - 1700) / 800.0f;  // left, right, back to the middle
+    p.gazeX = u < 0.3f ? -segment(t, 1700, 1940) : (u < 0.7f ? -1 + 2 * segment(t, 1940, 2260) : 1 - segment(t, 2260, 2500));
+  }
+  drawOwlIdle(s, p, r);
+  if (t < 1500) bang(s, 290, 186);
+  if (clipSnoreBurst() && t < 250) {  // the snore bubble bursts, above the beak
+    for (int i = 0; i < 8; i++) {
+      float a = i * PI_F / 4, r0 = 12 + t / 25.0f;
+      stroke(s, OWL_SNORE_X + r0 * cosf(a), OWL_SNORE_Y + r0 * sinf(a), OWL_SNORE_X + (r0 + 6) * cosf(a),
+             OWL_SNORE_Y + (r0 + 6) * sinf(a), 3, P_WHITE);
+    }
+  }
+  return true;
+}
+
+// Squeezed ^ ^ eyes, brows up, a big blush and a wiggle, in whatever mood's colours are showing. No grin.
+static bool giggle(TFT_eSprite& s, uint32_t t, uint32_t duration) {
+  if (t >= duration) return false;
+  Xf f;
+  f.dx = 5 * sinf(2 * PI_F * t / 220.0f);
+  f.dy = -3 * fabsf(sinf(2 * PI_F * t / 440.0f));
+  bar(s, f, 58, 24, 70, 11, -8, P_INK);
+  bar(s, f, 192, 24, 70, 11, 8, P_INK);
+  arcs(s, f, 134, 84, 20);
+  blob(s, f, 96, 178, 26, 14, P_BLUSH);
+  blob(s, f, 224, 178, 26, 14, P_BLUSH);
+  return true;
+}
+
+// A quick peek-a-boo: slides off the right edge, the left eye peeks back in, then slides home.
+static bool hide(TFT_eSprite& s, Mood m, uint32_t t, uint32_t now, Pose p) {
+  const float OUT = 340, PEEK = 200;  // dx with the face fully off screen, and with only the left eye showing
+  if (t >= 3000) return false;
+  if (t < 400) {
+    p.dx = (int16_t)(OUT * segment(t, 0, 400));
+  } else if (t < 1300) {
+    p.dx = (int16_t)OUT;
+  } else if (t < 2300) {
+    p.dx = (int16_t)(OUT - (OUT - PEEK) * segment(t, 1300, 1700));
+    p.gazeX = -1;  // looking for you
+    p.eyeOpen = dip(t, 1950, 2150, 0.1f);
+  } else if (t < 2500) {
+    p.dx = (int16_t)(PEEK + (OUT - PEEK) * segment(t, 2300, 2500));
+  } else {
+    p.dx = (int16_t)(OUT * (1 - segment(t, 2500, 3000)));
+  }
+  p.dy = 0;
+  drawOwlFace(s, m, p, now);
+  return true;
+}
+
 bool drawOwlClip(TFT_eSprite& s, ClipId id, Mood m, uint32_t t, uint32_t now, Pose p) {
   switch (id) {
     case CLIP_WHISTLE:
@@ -304,6 +374,14 @@ bool drawOwlClip(TFT_eSprite& s, ClipId id, Mood m, uint32_t t, uint32_t now, Po
       return peek(s, t);
     case CLIP_SNORE:
       return snore(s, t, now, p);
+    case CLIP_STARTLE:
+      return startle(s, t, p);
+    case CLIP_GIGGLE:
+      return giggle(s, t, 2500);
+    case CLIP_QUICK_GIGGLE:
+      return giggle(s, t, 1000);
+    case CLIP_HIDE:
+      return hide(s, m, t, now, p);
     default:
       return false;
   }

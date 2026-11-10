@@ -142,13 +142,6 @@ void handleTouch(uint32_t now) {
   lastPoll = now;
   if (!pokes.update(touchPressed(), now)) return;
   Serial.println("poke");
-  if (style == S_OWL) {  // no reactions yet: a poke only wakes him
-    if (mood == M_SLEEPY) {
-      setMood(M_IDLE);
-      backlightSnap(BACKLIGHT_FULL);
-    }
-    return;
-  }
   switch (chooseReaction(mood, clip != CLIP_NONE && clipIsReaction, esp_random())) {
     case R_STARTLE:
       clipSnorePopped(clip == CLIP_SNORE);
