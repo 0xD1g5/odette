@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Claude Code hook relay for Desk Buddy.
+"""Claude Code hook relay for Odette.
 
 Usage in a hook command:  python3 buddy_hook.py <EventName>
 From the status line:     python3 buddy_hook.py StatusLine   (forwards the 5-hour usage for the ring)
@@ -18,7 +18,7 @@ import socket
 import sys
 import time
 
-SOCK_DIR = os.environ.get("DESK_BUDDY_DIR") or os.path.expanduser("~/.desk-buddy")
+SOCK_DIR = os.environ.get("ODETTE_DIR") or os.path.expanduser("~/.odette")
 SOCK_PATH = os.path.join(SOCK_DIR, "buddy.sock")
 
 MAX_STDIN = 32 * 1024 * 1024   # tool output can be large, so read it all up to a cap
@@ -103,7 +103,7 @@ def main():
 
     msg = {
         "e": event or str(payload.get("hook_event_name") or ""),
-        "s": str(payload.get("session_id") or os.environ.get("DESK_BUDDY_SESSION") or "default"),
+        "s": str(payload.get("session_id") or os.environ.get("ODETTE_SESSION") or "default"),
         "t": str(payload.get("notification_type") or ""),
         "m": str(payload.get("message") or "")[:100],
     }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Desk Buddy daemon.
+"""Odette daemon.
 
 Owns the USB serial port to the board, receives Claude Code hook events from
 buddy_hook.py over a local Unix socket, works out one face state across all
@@ -23,7 +23,7 @@ import socket
 import sys
 import time
 
-SOCK_DIR = os.environ.get("DESK_BUDDY_DIR") or os.path.expanduser("~/.desk-buddy")
+SOCK_DIR = os.environ.get("ODETTE_DIR") or os.path.expanduser("~/.odette")
 SOCK_PATH = os.path.join(SOCK_DIR, "buddy.sock")
 LOCK_PATH = os.path.join(SOCK_DIR, "daemon.lock")
 SOCK_PATH_LIMIT = 100  # macOS allows 104 bytes for a Unix socket path, Linux 108
@@ -38,7 +38,7 @@ PORT_GLOBS = [
 ]
 
 IGNORED_NOTIFICATIONS = ("idle_prompt", "auth_success")
-BOOT_BANNER = "Desk Buddy"  # the firmware prints this line at every boot
+BOOT_BANNER = "Odette"  # the firmware prints this line at every boot
 
 
 class Aggregator(object):
@@ -392,8 +392,8 @@ def handle_datagram(data, agg, usage, log, verbose):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Desk Buddy daemon")
-    parser.add_argument("--port", default=os.environ.get("DESK_BUDDY_PORT"),
+    parser = argparse.ArgumentParser(description="Odette daemon")
+    parser.add_argument("--port", default=os.environ.get("ODETTE_PORT"),
                         help="serial port, for example /dev/cu.usbserial-0001 (default: auto-detect)")
     parser.add_argument("--baud", type=int, default=115200)
     parser.add_argument("--boot-delay", type=float, default=3.0,
@@ -419,7 +419,7 @@ def main():
 
     if len(os.fsencode(SOCK_PATH)) > SOCK_PATH_LIMIT:
         sys.stderr.write("Socket path is too long (%d bytes, limit %d): %s\n"
-                         "Set DESK_BUDDY_DIR to a shorter directory.\n"
+                         "Set ODETTE_DIR to a shorter directory.\n"
                          % (len(os.fsencode(SOCK_PATH)), SOCK_PATH_LIMIT, SOCK_PATH))
         return 2
 

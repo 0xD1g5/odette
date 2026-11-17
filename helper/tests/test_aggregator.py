@@ -133,7 +133,7 @@ class RebootDetect(unittest.TestCase):
                 return c
 
         b = Board(None, 115200, 3, lambda m: None)
-        b.ser = Fake([b"junk Desk ", b"Buddy stage 1\n"])
+        b.ser = Fake([b"junk Ode", b"tte stage 1\n"])
         b.drain()
         self.assertFalse(b.take_reboot())
         b.drain()

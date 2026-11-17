@@ -57,7 +57,7 @@ class Relay(unittest.TestCase):
         srv = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
         srv.bind(path)
         srv.settimeout(5)
-        env = dict(os.environ, DESK_BUDDY_DIR=d)
+        env = dict(os.environ, ODETTE_DIR=d)
         r = subprocess.run([sys.executable, HOOK, "PostToolUse"], input=payload, env=env,
                            capture_output=True, timeout=20)
         self.assertEqual(r.returncode, 0)
@@ -76,7 +76,7 @@ class Relay(unittest.TestCase):
         self.assertEqual(self.send(b'{"session_id": "real", "tool_response": "abc')["s"], "real")
 
     def test_no_daemon_exits_zero(self):
-        env = dict(os.environ, DESK_BUDDY_DIR=tempfile.mkdtemp())
+        env = dict(os.environ, ODETTE_DIR=tempfile.mkdtemp())
         r = subprocess.run([sys.executable, HOOK, "Stop"], input=b"{}", env=env, capture_output=True, timeout=10)
         self.assertEqual(r.returncode, 0)
 

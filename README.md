@@ -1,4 +1,4 @@
-# Desk Buddy
+# Odette
 
 A quirky, cheerful animated face for the 2.8" ESP32-32E display (240x320 panel, landscape).
 A Mac helper drives the face from Claude Code activity.
@@ -93,17 +93,17 @@ The helper has three parts, all in `helper/`:
    The preview prints a diff and writes nothing. `--apply` makes a timestamped backup first.
 6. Start a new Claude Code session. The face should switch to thinking when you send a prompt.
 
-The installer copies `buddy_hook.py` to `~/.desk-buddy/bin/` and points the hooks at a system python3 plus that copy, with `|| true`, so Claude Code is never affected when an external drive is unmounted. Re-run `--apply` after editing `buddy_hook.py` to refresh the copy. Override the interpreter with `--hook-python`.
+The installer copies `buddy_hook.py` to `~/.odette/bin/` and points the hooks at a system python3 plus that copy, with `|| true`, so Claude Code is never affected when an external drive is unmounted. Re-run `--apply` after editing `buddy_hook.py` to refresh the copy. Override the interpreter with `--hook-python`.
 
-Optional, start the daemon at login: `.venv/bin/python helper/install.py --launchagent --apply`, then run the `launchctl bootstrap` line it prints. The installer refuses if that interpreter cannot import pyserial, since the daemon would then exit at every start and launchd would keep restarting it. It copies `buddy_daemon.py` to `~/.desk-buddy/bin/` like the hook, so re-run it after editing the daemon. The plist uses the interpreter that runs the installer. If the project sits on an external drive, give the daemon its own venv in your home folder, or it cannot start at login while the drive is unmounted, and macOS privacy protection can block a background process from reading the drive even when it is mounted:
+Optional, start the daemon at login: `.venv/bin/python helper/install.py --launchagent --apply`, then run the `launchctl bootstrap` line it prints. The installer refuses if that interpreter cannot import pyserial, since the daemon would then exit at every start and launchd would keep restarting it. It copies `buddy_daemon.py` to `~/.odette/bin/` like the hook, so re-run it after editing the daemon. The plist uses the interpreter that runs the installer. If the project sits on an external drive, give the daemon its own venv in your home folder, or it cannot start at login while the drive is unmounted, and macOS privacy protection can block a background process from reading the drive even when it is mounted:
 
-    python3 -m venv ~/.desk-buddy/venv
-    ~/.desk-buddy/venv/bin/pip install -r helper/requirements.txt
-    ~/.desk-buddy/venv/bin/python helper/install.py --launchagent --apply
+    python3 -m venv ~/.odette/venv
+    ~/.odette/venv/bin/pip install -r helper/requirements.txt
+    ~/.odette/venv/bin/python helper/install.py --launchagent --apply
 
 ### Upgrading
 
-The hooks and the launch agent run copies in `~/.desk-buddy/bin/`, not the files in this folder, so after pulling or editing the helper refresh them, and stop any daemon that is still running the old code:
+The hooks and the launch agent run copies in `~/.odette/bin/`, not the files in this folder, so after pulling or editing the helper refresh them, and stop any daemon that is still running the old code:
 
     .venv/bin/python helper/install.py --apply                  # refreshes the hook copy
     .venv/bin/python helper/install.py --launchagent --apply    # if you use it, then run the bootout and bootstrap lines it prints
@@ -117,7 +117,7 @@ The small ring in the bottom-right corner shows how much of Claude's 5-hour usag
     .venv/bin/python helper/install.py --statusline            # preview
     .venv/bin/python helper/install.py --statusline --apply    # write, with a timestamped backup
 
-It adds one line right after the line that reads stdin into a variable (`input=$(cat)`), marked `# desk-buddy`. The line runs the relay in the background with its output discarded, so the status line looks and runs exactly as before, even when the daemon is down. Other setups (no status line, an inline command, a script that reads stdin differently) are left alone, and the installer prints the line to add by hand.
+It adds one line right after the line that reads stdin into a variable (`input=$(cat)`), marked `# odette`. The line runs the relay in the background with its output discarded, so the status line looks and runs exactly as before, even when the daemon is down. Other setups (no status line, an inline command, a script that reads stdin differently) are left alone, and the installer prints the line to add by hand.
 
 - The ring is hidden until a number arrives, and when the board stops hearing from the daemon.
 - The number is for the whole account, so the latest report from any session wins. It drops to 0 when the 5-hour window resets.

@@ -1,4 +1,4 @@
-// Desk Buddy, stage 2
+// Odette, stage 2
 // A quirky, cheerful face on the 2.8" ESP32-32E display (320x240 landscape).
 // Moods: idle, happy, thinking, sleepy, alert (needs you), error (playful sad).
 // Control: press BOOT to cycle moods, or send lines over USB serial at 115200 (see lib/buddy_logic/src/protocol.h).
@@ -245,7 +245,7 @@ void setup() {
   Serial.begin(115200);
   pinMode(0, INPUT_PULLUP);
   delay(200);
-  Serial.println("\nDesk Buddy stage 2");
+  Serial.println("\nOdette stage 2");
 
   if (!canvasBegin()) {
     TFT_eSPI& tft = display();

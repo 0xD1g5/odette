@@ -31,7 +31,7 @@ def relay(payload):
     srv = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
     srv.bind(path)
     srv.settimeout(5)
-    env = dict(os.environ, DESK_BUDDY_DIR=d)
+    env = dict(os.environ, ODETTE_DIR=d)
     proc = subprocess.run([sys.executable, HOOK, "StatusLine"], input=payload, env=env,
                           capture_output=True, timeout=20)
     try:
@@ -72,7 +72,7 @@ class StatusLineEdit(unittest.TestCase):
         lines = out.splitlines()
         i = lines.index("input=$(cat)")
         self.assertEqual(lines[i + 1], 'printf \'%s\' "$input" | "/usr/bin/python3" "/h/buddy_hook.py" StatusLine'
-                                       ' >/dev/null 2>&1 & # desk-buddy')
+                                       ' >/dev/null 2>&1 & # odette')
         self.assertEqual(len(lines), len(SAMPLE.splitlines()) + 1)
 
     def test_add_line_other_var_name(self):
@@ -156,7 +156,7 @@ class StatusLineCli(unittest.TestCase):
             return handle.read()
 
     def backups(self):
-        return [n for n in os.listdir(self.home) if n.startswith("sl.sh.deskbuddy-backup-")]
+        return [n for n in os.listdir(self.home) if n.startswith("sl.sh.odette-backup-")]
 
     def test_dry_run_shows_diff_and_writes_nothing(self):
         r = self.run_install("--statusline")
@@ -167,7 +167,7 @@ class StatusLineCli(unittest.TestCase):
     def test_apply_then_uninstall(self):
         r = self.run_install("--statusline", "--apply")
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertIn("# desk-buddy", self.read_script())
+        self.assertIn("# odette", self.read_script())
         self.assertEqual(len(self.backups()), 1)
         r = self.run_install("--uninstall", "--apply")
         self.assertEqual(r.returncode, 0, r.stderr)
@@ -183,7 +183,7 @@ class StatusLineCli(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertTrue(os.path.islink(self.script))
         with open(real) as handle:
-            self.assertIn("# desk-buddy", handle.read())
+            self.assertIn("# odette", handle.read())
         r = self.run_install("--uninstall", "--apply")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertTrue(os.path.islink(self.script))

@@ -130,8 +130,8 @@ class DatagramTest(unittest.TestCase):
 class LineReaderTest(unittest.TestCase):
     def test_line_reader_split_chunks(self):
         r = LineReader()
-        self.assertEqual(r.feed(b"Desk Bu"), [])
-        self.assertEqual(r.feed(b"ddy stage 2\r\npo"), ["Desk Buddy stage 2"])
+        self.assertEqual(r.feed(b"Ode"), [])
+        self.assertEqual(r.feed(b"tte stage 2\r\npo"), ["Odette stage 2"])
         self.assertEqual(r.feed(b"ke\n"), ["poke"])
 
     def test_line_reader_many_in_one(self):

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Install or remove the Desk Buddy hooks in Claude Code's settings.json.
+"""Install or remove the Odette hooks in Claude Code's settings.json.
 
 Default is a dry run: it shows exactly what would change and writes nothing.
 Add --apply to write. A timestamped backup is made first.
 
     python3 install.py                  show the change
     python3 install.py --apply          install the hooks
-    python3 install.py --uninstall --apply     remove only Desk Buddy's hooks
+    python3 install.py --uninstall --apply     remove only Odette's hooks
     python3 install.py --launchagent --apply   also start the daemon at login (macOS)
     python3 install.py --statusline --apply    also feed the 5-hour usage ring from your status line
 
@@ -42,12 +42,12 @@ EVENTS = [
     "SessionEnd",
 ]
 DEFAULT_SETTINGS = os.path.expanduser("~/.claude/settings.json")
-PLIST_PATH = os.path.expanduser("~/Library/LaunchAgents/com.deskbuddy.daemon.plist")
-LOG_PATH = os.path.expanduser("~/.desk-buddy/daemon.log")
-BIN_DIR = os.path.expanduser("~/.desk-buddy/bin")
+PLIST_PATH = os.path.expanduser("~/Library/LaunchAgents/com.odette.daemon.plist")
+LOG_PATH = os.path.expanduser("~/.odette/daemon.log")
+BIN_DIR = os.path.expanduser("~/.odette/bin")
 LOCAL_HOOK = os.path.join(BIN_DIR, "buddy_hook.py")
 LOCAL_DAEMON = os.path.join(BIN_DIR, "buddy_daemon.py")
-STATUSLINE_MARK = "# desk-buddy"
+STATUSLINE_MARK = "# odette"
 STATUSLINE_SHELLS = ("bash", "sh", "zsh", "/bin/bash", "/bin/sh", "/bin/zsh")
 STDIN_LINE = re.compile(r"^(\s*)(\w+)=\$\(cat\)\s*$")
 PYTHON_CANDIDATES = ["/opt/homebrew/bin/python3", "/usr/local/bin/python3", "/usr/bin/python3"]
@@ -184,10 +184,10 @@ def write_settings(path, text):
     backup = None
     mode = None
     if os.path.exists(path):
-        backup = "%s.deskbuddy-backup-%s" % (path, time.strftime("%Y%m%d-%H%M%S"))
+        backup = "%s.odette-backup-%s" % (path, time.strftime("%Y%m%d-%H%M%S"))
         shutil.copy2(path, backup)
         mode = os.stat(path).st_mode & 0o777
-    temp = path + ".deskbuddy-tmp"
+    temp = path + ".odette-tmp"
     with open(temp, "w") as handle:
         handle.write(text)
     if mode is not None:
@@ -232,7 +232,7 @@ def remove_launchagent():
         os.unlink(PLIST_PATH)
         # Name the service by label: bootout with a plist path fails once the file is gone.
         print("Removed %s. If it is loaded, run:" % PLIST_PATH)
-        print("  launchctl bootout gui/$(id -u)/com.deskbuddy.daemon")
+        print("  launchctl bootout gui/$(id -u)/com.odette.daemon")
     try:
         os.unlink(LOCAL_DAEMON)
     except OSError:
@@ -245,8 +245,8 @@ def launchagent(apply):
         sys.stderr.write("\nWarning: %s is on an external drive. The daemon cannot start at login "
                          "while it is unmounted.\n" % python)
     plist = {
-        "Label": "com.deskbuddy.daemon",
-        # A copy in ~/.desk-buddy/bin, like the hook, so the script itself never lives on an external drive.
+        "Label": "com.odette.daemon",
+        # A copy in ~/.odette/bin, like the hook, so the script itself never lives on an external drive.
         "ProgramArguments": [python, LOCAL_DAEMON],
         "RunAtLoad": True,
         "KeepAlive": {"SuccessfulExit": False},
@@ -295,10 +295,10 @@ def statusline(settings, python, args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Install Desk Buddy hooks into Claude Code")
+    parser = argparse.ArgumentParser(description="Install Odette hooks into Claude Code")
     parser.add_argument("--settings", default=DEFAULT_SETTINGS, help="settings.json to edit")
     parser.add_argument("--apply", action="store_true", help="write the change (default is a dry run)")
-    parser.add_argument("--uninstall", action="store_true", help="remove Desk Buddy's hooks")
+    parser.add_argument("--uninstall", action="store_true", help="remove Odette's hooks")
     parser.add_argument("--launchagent", action="store_true", help="also write a macOS launch agent for the daemon")
     parser.add_argument("--statusline", action="store_true",
                         help="also add one line to your status line script so the board can show 5-hour usage")
