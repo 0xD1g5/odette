@@ -14,8 +14,6 @@ Each mood fills the screen with its own colour, so you can read it at a glance f
 | playful sad (`error`) | Blue. Worried brows, puppy eyes, wobbly pout, a falling tear |
 | sleepy | Navy, dimmed. Closed eyes, slow breathing, drifting Z z |
 
-The design and mockups are in `docs/superpowers/specs/2026-11-05-desk-buddy-character-design.md`.
-
 Firmware logic tests run on the Mac: `pio test -e native`.
 
 ## 1. Flash the firmware
@@ -170,3 +168,7 @@ Pressure reads 3-15 untouched and 1,600-3,400 pressed; a poke is above 400.
 ## Next
 
 - Mood transitions (a quick squash or blink between moods) were left out of the redesign as optional polish.
+
+## License
+
+MIT, see `LICENSE`.
